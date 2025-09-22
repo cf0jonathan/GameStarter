@@ -160,6 +160,72 @@ if %errorlevel% equ 0 (
     )
 )
 
+:: Check Ninja
+echo Checking Ninja...
+where ninja >nul 2>&1
+if %errorlevel% equ 0 (
+    echo [SUCCESS] Ninja is installed
+) else (
+    echo [WARNING] Ninja not found
+    echo [INFO] Attempting to install Ninja using Chocolatey...
+    
+    :: Check if Chocolatey is installed
+    where choco >nul 2>&1
+    if %errorlevel% equ 0 (
+        echo [INFO] Chocolatey found. Installing Ninja...
+        choco install ninja -y
+        if %errorlevel% equ 0 (
+            echo [SUCCESS] Ninja installed successfully
+            echo [INFO] Please restart your terminal/VS Code to refresh PATH
+            echo.
+            set /p "CONTINUE=Continue with setup? (y/n): "
+            if /i not "!CONTINUE!"=="y" (
+                pause
+                exit /b 1
+            )
+        ) else (
+            echo [ERROR] Failed to install Ninja via Chocolatey
+            echo [INFO] Please install manually from: https://ninja-build.org/
+            pause
+            exit /b 1
+        )
+    ) else (
+        echo [WARNING] Chocolatey not found
+        echo [INFO] Installing Chocolatey package manager...
+        
+        :: Install Chocolatey
+        powershell -Command "Set-ExecutionPolicy Bypass -Scope Process -Force; [System.Net.ServicePointManager]::SecurityProtocol = [System.Net.ServicePointManager]::SecurityProtocol -bor 3072; iex ((New-Object System.Net.WebClient).DownloadString('https://community.chocolatey.org/install.ps1'))"
+        
+        if %errorlevel% equ 0 (
+            echo [SUCCESS] Chocolatey installed successfully
+            echo [INFO] Installing Ninja...
+            
+            :: Refresh PATH and install Ninja
+            call choco install ninja -y
+            if %errorlevel% equ 0 (
+                echo [SUCCESS] Ninja installed successfully
+                echo [INFO] Please restart your terminal/VS Code to refresh PATH
+                echo.
+                set /p "CONTINUE=Continue with setup? (y/n): "
+                if /i not "!CONTINUE!"=="y" (
+                    pause
+                    exit /b 1
+                )
+            ) else (
+                echo [ERROR] Failed to install Ninja via Chocolatey
+                echo [INFO] Please install manually from: https://ninja-build.org/
+                pause
+                exit /b 1
+            )
+        ) else (
+            echo [ERROR] Failed to install Chocolatey
+            echo [INFO] Please install Ninja manually from: https://ninja-build.org/
+            pause
+            exit /b 1
+        )
+    )
+)
+
 echo.
 echo [SUCCESS] All prerequisites are met!
 echo.
