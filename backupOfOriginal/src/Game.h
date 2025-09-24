@@ -29,19 +29,13 @@ private:
     };
     std::vector<FallingBlock> fallingBlocks_;
     b2BodyId groundId_ = b2_nullBodyId;
-    b2BodyId mouseBlockId_ = b2_nullBodyId; // Physics body for mouse-following block
 
     float gravityY_ = 9.8f;
     std::string title_ = "Falling Blocks";
     std::mt19937 rng_;
     float spawnTimer_ = 0.0f;
     float spawnInterval_ = 0.5f; // Spawn rate from config
-    float boxSize_ = 0.5f; // Box size from config (falling blocks)
-    float mouseBlockSize_ = 0.5f; // Mouse block size from config
-    
-    // Mouse-following block
-    int mouseX_ = 400; // Mouse X position in screen coordinates
-    int mouseY_ = 300; // Mouse Y position in screen coordinates
+    float boxSize_ = 0.5f; // Box size from config
     
     // Rendering constants
     static constexpr int SCREEN_WIDTH = 800;

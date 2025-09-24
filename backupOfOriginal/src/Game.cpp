@@ -27,21 +27,7 @@ int Game::run() {
     while (running) {
         SDL_Event e;
         while (SDL_PollEvent(&e)) {
-            if (e.type == SDL_QUIT) {
-                running = false;
-            } else if (e.type == SDL_MOUSEMOTION) {
-                mouseX_ = e.motion.x;
-                mouseY_ = e.motion.y;
-                
-                // Convert screen coordinates to Box2D world coordinates
-                float worldX = (mouseX_ - SCREEN_WIDTH/2) / PIXELS_PER_METER;
-                float worldY = (SCREEN_HEIGHT/2 - mouseY_) / PIXELS_PER_METER; // Flip Y axis
-                
-                // Update the mouse block's physics body position
-                if (B2_IS_NON_NULL(mouseBlockId_)) {
-                    b2Body_SetTransform(mouseBlockId_, B2_LITERAL(b2Vec2){worldX, worldY}, b2Body_GetRotation(mouseBlockId_));
-                }
-            }
+            if (e.type == SDL_QUIT) running = false;
         }
 
         accumulator += dt;
@@ -80,10 +66,8 @@ bool Game::loadConfig(const std::string& path) {
     root->QueryFloatAttribute("spawnRate", &spawnRate);
     spawnInterval_ = 1.0f / spawnRate; // Convert spawns per second to seconds between spawns
     root->QueryFloatAttribute("boxSize", &boxSize_);
-    root->QueryFloatAttribute("mouseBlockSize", &mouseBlockSize_);
     std::cout << "Loaded config: title=\"" << title_ << "\" gravityY=" << gravityY_ 
-              << " spawnRate=" << spawnRate << " spawnInterval=" << spawnInterval_ 
-              << " boxSize=" << boxSize_ << " mouseBlockSize=" << mouseBlockSize_ << "\n";
+              << " spawnRate=" << spawnRate << " spawnInterval=" << spawnInterval_ << " boxSize=" << boxSize_ << "\n";
     return true;
 }
 
@@ -120,17 +104,6 @@ bool Game::init() {
     b2Polygon groundBox = b2MakeBox(50.0f, 1.0f);
     b2CreatePolygonShape(groundId_, &groundShapeDef, &groundBox);
 
-    // Create mouse-following block (kinematic body for controlled movement)
-    b2BodyDef mouseBodyDef = b2DefaultBodyDef();
-    mouseBodyDef.type = b2_kinematicBody; // Kinematic so we can control it but it still has collisions
-    mouseBodyDef.position = B2_LITERAL(b2Vec2){0.0f, 0.0f}; // Start at world origin
-    mouseBlockId_ = b2CreateBody(worldId_, &mouseBodyDef);
-    
-    b2ShapeDef mouseShapeDef = b2DefaultShapeDef();
-    mouseShapeDef.density = 1.0f;
-    b2Polygon mouseBox = b2MakeBox(mouseBlockSize_/2.0f, mouseBlockSize_/2.0f);
-    b2CreatePolygonShape(mouseBlockId_, &mouseShapeDef, &mouseBox);
-
     // Initialize random number generator
     rng_.seed(std::chrono::steady_clock::now().time_since_epoch().count());
     
@@ -157,7 +130,6 @@ void Game::shutdown() {
     if (B2_IS_NON_NULL(worldId_)) {
         b2DestroyWorld(worldId_);
         worldId_ = b2_nullWorldId;
-        mouseBlockId_ = b2_nullBodyId; // Reset mouse block ID
     }
     if (blockTexture_) { SDL_DestroyTexture(blockTexture_); blockTexture_ = nullptr; }
     if (renderer_) { SDL_DestroyRenderer(renderer_); renderer_ = nullptr; }
@@ -213,27 +185,6 @@ void Game::render() {
             SDL_Rect destRect = {centerX - blockSize/2, centerY - blockSize/2, blockSize, blockSize};
             SDL_RenderCopyEx(renderer_, blockTexture_, nullptr, &destRect, angle, nullptr, SDL_FLIP_NONE);
         }
-    }
-
-    // Draw mouse-following block (with physics)
-    if (B2_IS_NON_NULL(mouseBlockId_)) {
-        b2Vec2 mouseBlockPos = b2Body_GetPosition(mouseBlockId_);
-        b2Transform mouseTransform = b2Body_GetTransform(mouseBlockId_);
-        
-        // Convert Box2D position to screen coordinates
-        int centerX = SCREEN_WIDTH/2 + static_cast<int>(mouseBlockPos.x * PIXELS_PER_METER);
-        int centerY = SCREEN_HEIGHT/2 - static_cast<int>(mouseBlockPos.y * PIXELS_PER_METER);
-        
-        // Get rotation angle from transform (convert to degrees for SDL)
-        float angle = atan2(mouseTransform.q.s, mouseTransform.q.c) * 180.0f / 3.14159f;
-        
-        // Set yellow color for mouse block
-        SDL_SetTextureColorMod(blockTexture_, 255, 255, 0);
-        
-        // Draw the rotated mouse block
-        int mouseBlockPixelSize = static_cast<int>(mouseBlockSize_ * PIXELS_PER_METER);
-        SDL_Rect destRect = {centerX - mouseBlockPixelSize/2, centerY - mouseBlockPixelSize/2, mouseBlockPixelSize, mouseBlockPixelSize};
-        SDL_RenderCopyEx(renderer_, blockTexture_, nullptr, &destRect, angle, nullptr, SDL_FLIP_NONE);
     }
 
     // Present the rendered frame
