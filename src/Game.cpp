@@ -21,7 +21,7 @@ int Game::run() {
 
     auto start = std::chrono::steady_clock::now();
     float accumulator = 0.0f;
-    const float dt = 1.0f / 60.0f;
+    const float dt = 1.0f / 120.0f; // Smaller timestep for more precise physics (doubled from 60fps to 120fps)
     bool running = true;
 
     while (running) {
@@ -109,25 +109,57 @@ bool Game::init() {
     // Create world with gravity (negative Y pulls downward in Box2D)
     b2WorldDef worldDef = b2DefaultWorldDef();
     worldDef.gravity = B2_LITERAL(b2Vec2){0.0f, -gravityY_};
+    
+    // Enable continuous collision detection to prevent tunneling
+    worldDef.enableContinuous = true;
+    worldDef.enableSleep = true; // Allow bodies to sleep for better performance
+    
     worldId_ = b2CreateWorld(&worldDef);
 
-    // Create ground body - position it below where the box will fall
-    b2BodyDef groundDef = b2DefaultBodyDef();
-    groundDef.position = B2_LITERAL(b2Vec2){0.0f, -4.0f}; // Ground at y=-4 (moved down)
-    groundId_ = b2CreateBody(worldId_, &groundDef);
+    // Create boundaries: floor, roof, and side walls (within visible area)
+    b2ShapeDef wallShapeDef = b2DefaultShapeDef();
+    wallShapeDef.material.friction = 0.6f; // Add friction to walls
+    wallShapeDef.material.restitution = 0.2f; // Slight bounciness
     
-    b2ShapeDef groundShapeDef = b2DefaultShapeDef();
-    b2Polygon groundBox = b2MakeBox(50.0f, 1.0f);
-    b2CreatePolygonShape(groundId_, &groundShapeDef, &groundBox);
+    // Create floor at bottom of visible screen
+    b2BodyDef floorDef = b2DefaultBodyDef();
+    floorDef.position = B2_LITERAL(b2Vec2){0.0f, -5.5f}; // Floor near bottom of visible area
+    groundId_ = b2CreateBody(worldId_, &floorDef);
+    b2Polygon floorBox = b2MakeBox(7.5f, 0.5f); // Fit within screen width
+    b2CreatePolygonShape(groundId_, &wallShapeDef, &floorBox);
+    
+    // Create roof at top of visible screen
+    b2BodyDef roofDef = b2DefaultBodyDef();
+    roofDef.position = B2_LITERAL(b2Vec2){0.0f, 5.5f}; // Roof near top of visible area
+    roofId_ = b2CreateBody(worldId_, &roofDef);
+    b2Polygon roofBox = b2MakeBox(7.5f, 0.5f); // Fit within screen width
+    b2CreatePolygonShape(roofId_, &wallShapeDef, &roofBox);
+    
+    // Create left wall
+    b2BodyDef leftWallDef = b2DefaultBodyDef();
+    leftWallDef.position = B2_LITERAL(b2Vec2){-7.5f, 0.0f}; // Left side within visible area
+    leftWallId_ = b2CreateBody(worldId_, &leftWallDef);
+    b2Polygon leftWallBox = b2MakeBox(0.5f, 11.0f); // Height to cover visible area
+    b2CreatePolygonShape(leftWallId_, &wallShapeDef, &leftWallBox);
+    
+    // Create right wall
+    b2BodyDef rightWallDef = b2DefaultBodyDef();
+    rightWallDef.position = B2_LITERAL(b2Vec2){7.5f, 0.0f}; // Right side within visible area
+    rightWallId_ = b2CreateBody(worldId_, &rightWallDef);
+    b2Polygon rightWallBox = b2MakeBox(0.5f, 11.0f); // Height to cover visible area
+    b2CreatePolygonShape(rightWallId_, &wallShapeDef, &rightWallBox);
 
     // Create mouse-following block (kinematic body for controlled movement)
     b2BodyDef mouseBodyDef = b2DefaultBodyDef();
     mouseBodyDef.type = b2_kinematicBody; // Kinematic so we can control it but it still has collisions
     mouseBodyDef.position = B2_LITERAL(b2Vec2){0.0f, 0.0f}; // Start at world origin
+    mouseBodyDef.isBullet = true; // Enable continuous collision detection for mouse block too
     mouseBlockId_ = b2CreateBody(worldId_, &mouseBodyDef);
     
     b2ShapeDef mouseShapeDef = b2DefaultShapeDef();
     mouseShapeDef.density = 1.0f;
+    mouseShapeDef.material.friction = 0.4f; // Add friction for better interaction
+    mouseShapeDef.material.restitution = 0.3f; // Some bounciness
     b2Polygon mouseBox = b2MakeBox(mouseBlockSize_/2.0f, mouseBlockSize_/2.0f);
     b2CreatePolygonShape(mouseBlockId_, &mouseShapeDef, &mouseBox);
 
@@ -158,6 +190,10 @@ void Game::shutdown() {
         b2DestroyWorld(worldId_);
         worldId_ = b2_nullWorldId;
         mouseBlockId_ = b2_nullBodyId; // Reset mouse block ID
+        groundId_ = b2_nullBodyId; // Reset ground ID
+        leftWallId_ = b2_nullBodyId; // Reset left wall ID
+        rightWallId_ = b2_nullBodyId; // Reset right wall ID
+        roofId_ = b2_nullBodyId; // Reset roof ID
     }
     if (blockTexture_) { SDL_DestroyTexture(blockTexture_); blockTexture_ = nullptr; }
     if (renderer_) { SDL_DestroyRenderer(renderer_); renderer_ = nullptr; }
@@ -166,7 +202,26 @@ void Game::shutdown() {
 }
 
 void Game::stepPhysics(float dt) {
-    b2World_Step(worldId_, dt, 6);
+    // Clamp velocities to prevent objects from moving too fast (prevents tunneling)
+    const float maxVelocity = 20.0f; // Maximum velocity in m/s
+    
+    for (const auto& block : fallingBlocks_) {
+        if (B2_IS_NON_NULL(block.bodyId)) {
+            b2Vec2 velocity = b2Body_GetLinearVelocity(block.bodyId);
+            float speed = b2Length(velocity);
+            
+            if (speed > maxVelocity) {
+                // Scale velocity down to maximum allowed speed
+                b2Vec2 clampedVelocity = b2MulSV(maxVelocity / speed, velocity);
+                b2Body_SetLinearVelocity(block.bodyId, clampedVelocity);
+            }
+        }
+    }
+    
+    // Use much more sub-steps for better collision detection (prevents tunneling)
+    // Higher sub-steps = more accurate collision detection for fast objects
+    int subSteps = 24; // Significantly increased for very precise collision detection
+    b2World_Step(worldId_, dt, subSteps);
 }
 
 void Game::render() {
@@ -183,14 +238,40 @@ void Game::render() {
         return screenPos;
     };
 
-    // Draw ground (static rectangle) - positioned at y=-4, size 100x2
-    SDL_SetRenderDrawColor(renderer_, 100, 100, 100, 255); // Gray
-    SDL_Rect groundRect;
-    groundRect.x = SCREEN_WIDTH/2 - static_cast<int>(50.0f * PIXELS_PER_METER); // Center the 100m wide ground
-    groundRect.y = SCREEN_HEIGHT/2 + static_cast<int>((4.0f - 1.0f) * PIXELS_PER_METER); // Ground center at y=-4, top edge at y=-5
-    groundRect.w = static_cast<int>(100.0f * PIXELS_PER_METER); // 100m wide
-    groundRect.h = static_cast<int>(2.0f * PIXELS_PER_METER); // 2m tall
-    SDL_RenderFillRect(renderer_, &groundRect);
+    // Draw boundaries (floor, roof, and walls) - within visible area
+    SDL_SetRenderDrawColor(renderer_, 100, 100, 100, 255); // Gray color for walls
+    
+    // Draw floor at bottom
+    SDL_Rect floorRect;
+    floorRect.x = SCREEN_WIDTH/2 - static_cast<int>(7.5f * PIXELS_PER_METER);
+    floorRect.y = SCREEN_HEIGHT/2 + static_cast<int>(5.5f * PIXELS_PER_METER) - static_cast<int>(0.5f * PIXELS_PER_METER);
+    floorRect.w = static_cast<int>(15.0f * PIXELS_PER_METER);
+    floorRect.h = static_cast<int>(1.0f * PIXELS_PER_METER);
+    SDL_RenderFillRect(renderer_, &floorRect);
+    
+    // Draw roof at top
+    SDL_Rect roofRect;
+    roofRect.x = SCREEN_WIDTH/2 - static_cast<int>(7.5f * PIXELS_PER_METER);
+    roofRect.y = SCREEN_HEIGHT/2 - static_cast<int>(5.5f * PIXELS_PER_METER) - static_cast<int>(0.5f * PIXELS_PER_METER);
+    roofRect.w = static_cast<int>(15.0f * PIXELS_PER_METER);
+    roofRect.h = static_cast<int>(1.0f * PIXELS_PER_METER);
+    SDL_RenderFillRect(renderer_, &roofRect);
+    
+    // Draw left wall
+    SDL_Rect leftWallRect;
+    leftWallRect.x = SCREEN_WIDTH/2 - static_cast<int>(7.5f * PIXELS_PER_METER) - static_cast<int>(0.5f * PIXELS_PER_METER);
+    leftWallRect.y = SCREEN_HEIGHT/2 - static_cast<int>(11.0f * PIXELS_PER_METER);
+    leftWallRect.w = static_cast<int>(1.0f * PIXELS_PER_METER);
+    leftWallRect.h = static_cast<int>(22.0f * PIXELS_PER_METER);
+    SDL_RenderFillRect(renderer_, &leftWallRect);
+    
+    // Draw right wall
+    SDL_Rect rightWallRect;
+    rightWallRect.x = SCREEN_WIDTH/2 + static_cast<int>(7.5f * PIXELS_PER_METER) - static_cast<int>(0.5f * PIXELS_PER_METER);
+    rightWallRect.y = SCREEN_HEIGHT/2 - static_cast<int>(11.0f * PIXELS_PER_METER);
+    rightWallRect.w = static_cast<int>(1.0f * PIXELS_PER_METER);
+    rightWallRect.h = static_cast<int>(22.0f * PIXELS_PER_METER);
+    SDL_RenderFillRect(renderer_, &rightWallRect);
 
     // Draw all falling blocks with rotation using color modulation
     for (const auto& block : fallingBlocks_) {
@@ -241,12 +322,14 @@ void Game::render() {
 }
 
 void Game::spawnRandomBlock() {
-    // Random X position between -8 and 8 (screen width coverage)
-    std::uniform_real_distribution<float> xDist(-8.0f, 8.0f);
+    // Random position within the walls (between -6.5 and 6.5 X, between -4.5 and 4.5 Y)
+    std::uniform_real_distribution<float> xDist(-6.5f, 6.5f); // Inside left and right walls
+    std::uniform_real_distribution<float> yDist(-4.5f, 4.5f); // Inside floor and roof
     std::uniform_int_distribution<int> colorDist(0, 255);
     
     float x = xDist(rng_);
-    
+    float y = yDist(rng_);
+
     // Generate random color
     SDL_Color blockColor = {
         static_cast<Uint8>(colorDist(rng_)), // Red
@@ -258,14 +341,37 @@ void Game::spawnRandomBlock() {
     // Create falling block at top of screen
     b2BodyDef bodyDef = b2DefaultBodyDef();
     bodyDef.type = b2_dynamicBody;
-    bodyDef.position = B2_LITERAL(b2Vec2){x, 8.0f}; // Start at top
+    bodyDef.position = B2_LITERAL(b2Vec2){x, y}; // Start at top
+    
+    // Enable bullet physics for continuous collision detection
+    bodyDef.enableSleep = true; // Allow sleeping for performance
+    bodyDef.isBullet = true; // Enable continuous collision detection for this body
+    
     b2BodyId blockId = b2CreateBody(worldId_, &bodyDef);
     
     b2ShapeDef dynamicShapeDef = b2DefaultShapeDef();
     dynamicShapeDef.density = 1.0f;
     dynamicShapeDef.material.restitution = 0.3f; // Add some bounciness
+    dynamicShapeDef.material.friction = 0.4f; // Add friction for better stacking
+    
+    // Enable continuous collision detection for fast-moving objects
+    dynamicShapeDef.enableHitEvents = true; // Enable collision events
+    
     b2Polygon dynamicBox = b2MakeBox(boxSize_/2.0f, boxSize_/2.0f); // b2MakeBox uses half-width/half-height
     b2CreatePolygonShape(blockId, &dynamicShapeDef, &dynamicBox);
+    
+    // Give each block random initial velocity and direction
+    std::uniform_real_distribution<float> velocityXDist(-5.0f, 5.0f); // Random horizontal velocity
+    std::uniform_real_distribution<float> velocityYDist(-2.0f, 2.0f); // Random vertical velocity
+    std::uniform_real_distribution<float> angularVelDist(-3.14f, 3.14f); // Random rotation velocity
+    
+    float randomVelX = velocityXDist(rng_);
+    float randomVelY = velocityYDist(rng_);
+    float randomAngularVel = angularVelDist(rng_);
+    
+    // Apply the random velocity to the block
+    b2Body_SetLinearVelocity(blockId, B2_LITERAL(b2Vec2){randomVelX, randomVelY});
+    b2Body_SetAngularVelocity(blockId, randomAngularVel);
     
     // Store block with its color
     fallingBlocks_.push_back({blockId, blockColor});

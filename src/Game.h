@@ -29,6 +29,9 @@ private:
     };
     std::vector<FallingBlock> fallingBlocks_;
     b2BodyId groundId_ = b2_nullBodyId;
+    b2BodyId leftWallId_ = b2_nullBodyId;
+    b2BodyId rightWallId_ = b2_nullBodyId;
+    b2BodyId roofId_ = b2_nullBodyId;
     b2BodyId mouseBlockId_ = b2_nullBodyId; // Physics body for mouse-following block
 
     float gravityY_ = 9.8f;
