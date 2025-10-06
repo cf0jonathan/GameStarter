@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Sample level file demonstrating the Factory Pattern in action!
+  
+  Each <Object> element will be processed by the Engine:
+  1. The "type" attribute determines which factory method to call
+  2. The <Body> element provides position/rotation data
+  3. The Library maps "type" string to the appropriate create() method
+  
+  This separation of data and code allows:
+  - Game designers to create levels without programming
+  - Easy modification of object placement
+  - Adding new object types without changing existing levels
+  - Version control friendly level data
+-->
+<Level>
+  <!-- Player starting position -->
+  <Object type="Player">
+    <Body x="0.0" y="0.0" angle="0.0" />
+  </Object>
+  
+  <!-- Some crates scattered around -->
+  <Object type="Crate">
+    <Body x="3.5" y="1.2" angle="15.0" />
+  </Object>
+  
+  <Object type="Crate">
+    <Body x="5.0" y="-2.0" angle="45.0" />
+  </Object>
+  
+  <Object type="Crate">
+    <Body x="-1.5" y="3.0" angle="0.0" />
+  </Object>
+  
+  <!-- Enemy positions -->
+  <Object type="Enemy">
+    <Body x="-2.0" y="4.0" angle="90.0" />
+  </Object>
+  
+  <Object type="Enemy">
+    <Body x="7.0" y="-1.0" angle="180.0" />
+  </Object>
+  
+  <Object type="Enemy">
+    <Body x="-3.0" y="-3.0" angle="270.0" />
+  </Object>
+</Level>

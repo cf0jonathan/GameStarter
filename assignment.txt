@@ -1,0 +1,112 @@
+Project Structure
+ 
+/assets
+/src
+ 
+Use TinyXML2 (or JSON/YAML if you prefer) to load a level and build objects via factory functions.
+
+Level Data (XML example)
+ 
+<?xml version="1.0" encoding="utf-8"?>
+<Level>
+  <Object type="Player">
+    <Body x="0.0" y="0.0" angle="0.0" />
+  </Object>
+  <Object type="Crate">
+    <Body x="3.5" y="1.2" angle="15.0" />
+  </Object>
+  <Object type="Enemy">
+    <Body x="-2.0" y="4.0" angle="90.0" />
+  </Object>
+</Level>
+(If using JSON/YAML, mirror fields and nesting.)
+
+
+
+Class Specs (key details)
+Object (abstract) — Object.h/.cpp
+Members
+
+ 
+float x{}, y{}, angle{};
+(or wrap in a small struct)
+
+Methods
+
+ 
+virtual ~Object() = default;
+virtual void update() = 0;
+virtual void draw() = 0;
+ 
+//Factory Function Examples
+﻿std::unique_ptr<Object> Enemy::create(const tinyxml2::XMLElement* xmlElement) 
+﻿OR  
+﻿std::unique_ptr<Object> createEnemy(const tinyxml2::XMLElement* xmlElement)
+Each concrete type overrides update, draw, and create.
+
+
+
+Library — Library.h/.cpp
+Holds factory lambdas so you don’t if/else on type strings.
+
+Members
+
+ 
+#include <unordered_map>
+#include <functional>
+ 
+struct Library {
+    std::unordered_map<
+        std::string,
+        std::function<std::unique_ptr<Object>(const tinyxml2::XMLElement*)>
+    > map;
+ 
+    Library(); // registers types
+};
+Registration example
+
+ 
+Library::Library() {
+    map["Player"] = Player::create;
+    //etc
+}
+Engine — Engine.h/.cpp
+Owns the library by value and a list of created objects.
+
+Members
+
+ 
+struct Engine {
+    Library objectLibrary; // not a unique_ptr
+    std::vector<std::unique_ptr<Object>> objects;
+    Engine() {}
+    Engine(const std::string& levelPath) { loadLevel(levelPath); }
+    void loadLevel(const std::string& levelPath);
+    void update();
+    void draw();
+};
+main (Engine on the stack)
+ 
+int main() {
+    std::string path = "assets/level.xml";
+    Engine engine(path); // STACK allocation
+ 
+    // Optional: iterate and print details
+    for (int i = 0; i < engine.objects.size(); ++i) {
+        std::cout << "[Main] obj#" << i
+                  << " pos=(" << engine.objects[i]->x
+                  << ", " << engine.objects[i]->y << ")"
+                  << " angle=" << engine.objects[i]->angle << "\n";
+    }
+ 
+    // while (engine.run()) { /* handle input, etc. */ }
+    return 0;
+}
+Submission
+Prefer a GitHub repo link (grant access if private).
+Or upload a zip of the full solution. It must build and run.
+Folder layout above is just an example—use what fits your project, but keep it tidy and reproducible.
+Optional Enhancements
+Save state back to XML.
+Add JSON/YAML support alongside XML.
+More object types/components; simple renderer; logging levels, etc.
