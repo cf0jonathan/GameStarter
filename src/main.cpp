@@ -13,7 +13,7 @@ int main() {
     
     std::cout << "\n=== Engine Created Successfully ===\n";
     std::cout << "Objects loaded: " << engine.getObjectCount() << "\n\n";
-    
+        
     std::cout << "=== Object Details ===\n";
     for (int i = 0; i < engine.objects.size(); ++i) {
         std::cout << "[Main] Object #" << i
