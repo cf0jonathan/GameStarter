@@ -6,6 +6,9 @@
 #include <memory>
 #include "Textures.h"
 
+// Forward declaration to avoid circular include
+class Engine;
+
 class SpriteComponent : public Component {
 public:
     SpriteComponent(GameObject& parent, std::string textureKey )
@@ -21,7 +24,9 @@ public:
         auto body = parent().get<BodyComponent>();
         if (body) {
             SDL_Rect dst = { static_cast<int>(body->x), static_cast<int>(body->y), 64, 64 };
-            SDL_RenderCopy(Engine::getRenderer(), texture, nullptr, &dst);
+            // Get renderer from external source (defined in Engine.cpp)
+            extern SDL_Renderer* getGameRenderer();
+            SDL_RenderCopyEx(getGameRenderer(), texture, nullptr, &dst, body->angle, nullptr, SDL_FLIP_NONE);
         }
     }
 

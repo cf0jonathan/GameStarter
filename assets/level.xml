@@ -1,34 +1,43 @@
 <?xml version="1.0" encoding="utf-8"?>
 
 <Level>
-  <!-- Player starting position -->
-  <Object type="Player">
-    <Body x="0.0" y="0.0" angle="0.0" />
-  </Object>
+  <!-- Player GameObject with movement controls -->
+  <GameObject id="player">
+    <BodyComponent x="100" y="200" vx="0" vy="0" angle="0" />
+    <SpriteComponent textureKey="squirrel" />
+    <ControllerComponent speed="5.0" />
+  </GameObject>
   
-  <!-- Some crates scattered around -->
-  <Object type="Crate">
-    <Body x="3.5" y="1.2" angle="15.0" />
-  </Object>
+  <!-- Sliding enemy -->
+  <GameObject id="slider">
+    <BodyComponent x="400" y="100" vx="0" vy="0" angle="0" />
+    <SpriteComponent textureKey="squirrel" />
+    <SlideComponent speed="3.0" leftBound="200" rightBound="600" />
+  </GameObject>
   
-  <Object type="Crate">
-    <Body x="5.0" y="-2.0" angle="45.0" />
-  </Object>
+  <!-- Spinning object -->
+  <GameObject id="spinner">
+    <BodyComponent x="400" y="400" vx="0" vy="0" angle="0" />
+    <SpriteComponent textureKey="squirrel" />
+    <RotateComponent rotationSpeed="2.0" />
+  </GameObject>
   
-  <Object type="Crate">
-    <Body x="-1.5" y="3.0" angle="0.0" />
-  </Object>
+  <!-- Combo object that slides and spins -->
+  <GameObject id="combo">
+    <BodyComponent x="100" y="500" vx="0" vy="0" angle="0" />
+    <SpriteComponent textureKey="squirrel" />
+    <SlideComponent speed="2.0" leftBound="50" rightBound="750" />
+    <RotateComponent rotationSpeed="5.0" />
+  </GameObject>
   
-  <!-- Enemy positions -->
-  <Object type="Enemy">
-    <Body x="-2.0" y="4.0" angle="90.0" />
-  </Object>
+  <!-- Static decorative objects -->
+  <GameObject id="decoration1">
+    <BodyComponent x="600" y="300" vx="0" vy="0" angle="45" />
+    <SpriteComponent textureKey="squirrel" />
+  </GameObject>
   
-  <Object type="Enemy">
-    <Body x="7.0" y="-1.0" angle="180.0" />
-  </Object>
-  
-  <Object type="Enemy">
-    <Body x="-3.0" y="-3.0" angle="270.0" />
-  </Object>
+  <GameObject id="decoration2">
+    <BodyComponent x="200" y="350" vx="0" vy="0" angle="90" />
+    <SpriteComponent textureKey="squirrel" />
+  </GameObject>
 </Level>

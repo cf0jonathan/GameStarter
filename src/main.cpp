@@ -1,34 +1,37 @@
 #include "Engine.h"
-#include "Object.h"
-#include <iostream>
-#include <string>
+#include "GameObject.h"
+#include "ComponentFactory.h"
 
-int main() {
-    std::cout << "=== Factory Pattern Game Engine Demo ===\n\n";
-    
-    std::string levelPath = "assets/level.xml";
-    
-    std::cout << "Creating engine and loading level...\n";
-    Engine engine(levelPath);
-    
-    std::cout << "\n=== Engine Created Successfully ===\n";
-    std::cout << "Objects loaded: " << engine.getObjectCount() << "\n\n";
-        
-    std::cout << "=== Object Details ===\n";
-    for (int i = 0; i < engine.objects.size(); ++i) {
-        std::cout << "[Main] Object #" << i
-                  << " position=(" << engine.objects[i]->getX()
-                  << ", " << engine.objects[i]->getY() << ")"
-                  << " angle=" << engine.objects[i]->getAngle() << " Degrees\n";
+int main(int argc, char* argv[]) {
+    // Initialize the engine
+    if (!Engine::init("Component-Based Game Engine", 800, 600)) {
+        return -1;
     }
+
+    SDL_Renderer* renderer = Engine::getRenderer();
+
+    // Load textures
+    Textures::load("squirrel", "assets/squirrel.png", renderer);
+    Textures::load("acorn", "assets/acorn.png", renderer);
+
+    // Create factory and load level from XML
+    ComponentFactory factory;
+    auto gameObjects = factory.loadLevel("assets/level.xml");
     
-    std::cout << "\n=== Testing Game Loop Methods ===\n";
-    
-    std::cout << "--- Update Phase ---\n";
-    engine.update();
-    
-    std::cout << "\n--- Draw Phase ---\n";
-    engine.draw();
+    // Find the player object and set up projectile spawning
+    for (auto& obj : gameObjects) {
+        auto controller = obj->get<ControllerComponent>();
+        if (controller) {
+            // Set up the projectile spawn callback
+            controller->setProjectileSpawnCallback([](double x, double y, double angle) {
+                Engine::spawnProjectile(x, y, angle);
+            });
+        }
+        Engine::addGameObject(std::move(obj));
+    }
+
+    // Run the game loop
+    Engine::run();
 
     return 0;
 }

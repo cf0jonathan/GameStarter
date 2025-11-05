@@ -14,14 +14,12 @@ find_package(tinyxml2 CONFIG REQUIRED)
 find_package(yaml-cpp CONFIG REQUIRED)
 find_package(nlohmann_json CONFIG REQUIRED)
 
-# Create executable with our Factory Pattern source files
+# Create executable with component-based architecture
 add_executable(demo 
     src/main.cpp 
-    src/Player.cpp 
-    src/Crate.cpp 
-    src/Enemy.cpp 
-    src/Library.cpp 
     src/Engine.cpp
+    src/Input.cpp
+    src/Textures.cpp
 )
 
 # Link libraries

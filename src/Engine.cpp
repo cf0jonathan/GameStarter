@@ -1,84 +1,52 @@
 #include "Engine.h"
-#include "Object.h"
-#include <tinyxml2.h>
-#include <iostream>
-#include <fstream>
+#include "ProjectileComponent.h"
+#include "BodyComponent.h"
+#include "SpriteComponent.h"
 
+// Definition of static members
+bool Engine::isRunning = false;
+SDL_Window* Engine::window = nullptr;
+SDL_Renderer* Engine::renderer = nullptr;
+std::vector<std::unique_ptr<GameObject>> Engine::gameObjects;
+int Engine::width = 0;
+int Engine::height = 0;
 
-Engine::Engine() {
-    std::cout << "[Engine] Engine created with empty level\n";
+// Helper function for SpriteComponent to avoid circular includes
+SDL_Renderer* getGameRenderer() {
+    return Engine::getRenderer();
 }
 
-Engine::Engine(const std::string& levelPath) {
-    std::cout << "[Engine] Engine created, loading level: " << levelPath << "\n";
-    loadLevel(levelPath);
+// Create and add a projectile
+void Engine::spawnProjectile(double x, double y, double angle) {
+    SDL_Log("Spawning projectile at (%.1f, %.1f) angle %.1f", x, y, angle);
+    SDL_Log("Current object count: %zu", gameObjects.size());
+    
+    auto projectile = std::make_unique<GameObject>();
+    projectile->add<BodyComponent>(x, y);
+    projectile->add<SpriteComponent>("acorn");
+    projectile->add<ProjectileComponent>(10.0, angle, width, height);  // Pass screen dimensions
+    gameObjects.push_back(std::move(projectile));
+    
+    SDL_Log("New object count: %zu", gameObjects.size());
 }
 
-void Engine::loadLevel(const std::string& levelPath) {
-    std::cout << "[Engine] Loading level from: " << levelPath << "\n";
-    
-    objects.clear();
-    
-    tinyxml2::XMLDocument doc;
-
-    tinyxml2::XMLError result = doc.LoadFile(levelPath.c_str());
-    
-    if (result != tinyxml2::XML_SUCCESS) {
-        std::cout << "[Engine] ERROR: Failed to load XML file: " << levelPath << "\n";
-        std::cout << "[Engine] XMLError code: " << result << "\n";
-        return;
-    }
-    
-    const auto* levelElement = doc.FirstChildElement("Level");
-    if (!levelElement) {
-        std::cout << "[Engine] ERROR: No <Level> root element found\n";
-        return;
-    }
-    
-    std::cout << "[Engine] Found <Level> element, parsing objects...\n";
-    
-    int objectCount = 0;
-    for (const auto* objectElement = levelElement->FirstChildElement("Object");
-         objectElement != nullptr;
-         objectElement = objectElement->NextSiblingElement("Object")) {
-
-        const char* typeAttr = objectElement->Attribute("type");
-        if (!typeAttr) {
-            std::cout << "[Engine] WARNING: <Object> element missing 'type' attribute, skipping\n";
-            continue;
-        }
-        
-        std::string objectType = typeAttr;
-        std::cout << "[Engine] Processing object type: " << objectType << "\n";
-        
-        auto newObject = objectLibrary.create(objectType, objectElement);
-        
-        if (newObject) {
-            objects.push_back(std::move(newObject));
-            objectCount++;
+// Remove projectiles that are off-screen
+void Engine::cleanupProjectiles() {
+    // Use a safer approach - iterate with explicit index
+    size_t initialSize = gameObjects.size();
+    for (size_t i = 0; i < gameObjects.size(); ) {
+        auto projectile = gameObjects[i]->get<ProjectileComponent>();
+        if (projectile && projectile->shouldDestroy()) {
+            gameObjects.erase(gameObjects.begin() + i);
+            // Don't increment i since we removed an element
         } else {
-            std::cout << "[Engine] WARNING: Failed to create object of type: " << objectType << "\n";
+            ++i;
         }
     }
-
-    std::cout << "[Engine] Level loaded successfully. Created " << objectCount << " objects.\n";
-}
-
-
-void Engine::update() {
-    for (auto& object : objects) {
-        if (object) {
-            object->update();
-        }
-    }
-}
-
-
-void Engine::draw() {
-    std::cout << "[Engine] Drawing " << objects.size() << " objects:\n";
-    for (auto& object : objects) {
-        if (object) {
-            object->draw();
-        }
+    
+    // Log cleanup activity
+    if (gameObjects.size() != initialSize) {
+        SDL_Log("Cleaned up %zu projectiles, %zu objects remaining", 
+                initialSize - gameObjects.size(), gameObjects.size());
     }
 }
