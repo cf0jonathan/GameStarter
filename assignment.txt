@@ -1,112 +1,81 @@
-Project Structure
+
+Assignment Objectives:
+
+This assignment is designed to give you practical experience with a component-based architecture that modularizes core game functionalities into interchangeable components. In this assignment, you will:
+
+Implement a class hierarchy for components, with an abstract base class Component.
+Implement a SpriteComponent class to provide graphical functionality.
+Create a BodyComponent class to manage basic physics (x, y, vx, vy, angle).
+Develop various BehaviorComponent classes.
+Implement a ControllerComponent to handle player input for movement (either top-down or platformer logic).
+Add a parent() function to components that returns a reference to the parent GameObject.
+The primary goal is to create a playable demo that effectively showcases the functionality of the required components while ensuring the game is interactive and demonstrates proper architecture.
+
+Assignment Summary:
+
+Rebuild the functionality from the previous assignment using a component-based architecture. A playable demo showing off all required components and interactions is required.
+
+Requirements:
+
+GameObject Class
+Acts as a container with interfaces for components derived from the Component class.
+Stores components in a vector<unique_ptr<Component>>.
+No child classes of GameObject – Instead of different object classes, use a component system.
+void add<T>(constructor args) – Adds a component to the list.
+T* get<T>() – Retrieves a raw pointer to the Component of type T if it exists.
+void update() – Calls the update method on all components.
+void draw() – Calls the draw method on components that implement it.
+Component Hierarchy
+virtual void update() = 0
+virtual void draw() = 0
+GameObject& parent() – Returns a reference to the parent GameObject.
+Minimum Components
+SpriteComponent – Manages graphical functionality.
+BodyComponent – Manages basic physics (position, angle, velocity).
+ControllerComponent – Handles user input for movement.
+Behavior1Component and Behavior2Component – Customize the names to match your object's behaviors.
+Component Factory
+Implement a factory that handles XML-based object creation. Students are free to substitute another format (e.g., YAML, JSON) if they prefer.
+The factory should:
+Create new objects.
+Read component data from XML.
+Use a map<string, function> to instantiate components.
+Add components to the GameObject.
+Optionally, call an initialize() method after all components are added.
+Here is a potential formal for your XML. The ultimate file structure is up to you.
+
+<GameObject id="1">
+    <BodyComponent x="50" y="100" width="64" height="64" velocityX="0" velocityY="0" angle="0" />
+    <SpriteComponent textureKey="hero_texture.png" />
+    <SlideComponet left="0" right="300" />
+</GameObject>
  
-/assets
-/src
+<GameObject id="2">
+    <BodyComponent x="150" y="300" width="64" height="64" velocityX="0" velocityY="0" angle="0" />
+    <SpriteComponent textureKey="enemy_texture.png" />
+</GameObject>
  
-Use TinyXML2 (or JSON/YAML if you prefer) to load a level and build objects via factory functions.
-
-Level Data (XML example)
+<!-- GameObject 3 -->
+<GameObject id="3">
+    <BodyComponent x="300" y="450" width="128" height="128" velocityX="0" velocityY="0" angle="15" />
+    <SpriteComponent textureKey="boss_texture.png" />
+</GameObject>
  
-<?xml version="1.0" encoding="utf-8"?>
-<Level>
-  <Object type="Player">
-    <Body x="0.0" y="0.0" angle="0.0" />
-  </Object>
-  <Object type="Crate">
-    <Body x="3.5" y="1.2" angle="15.0" />
-  </Object>
-  <Object type="Enemy">
-    <Body x="-2.0" y="4.0" angle="90.0" />
-  </Object>
-</Level>
-(If using JSON/YAML, mirror fields and nesting.)
+Input Class
+A basic input class is provided, but feel free to modify it. Components should interact with this class for input handling rather than dealing directly with SDL events.
+Playable Demo:
 
+Ensure that your demo showcases features such as player movement, component interactions, and behaviors. Your player should be able to perform tasks like moving diagonally or attacking while moving.
 
+Submission:
 
-Class Specs (key details)
-Object (abstract) — Object.h/.cpp
-Members
+Submit your code via GitHub, ensuring your repository is up-to-date using GitHub Desktop. Provide a link to your repository.
+Include a readme.md that briefly describes the game engine's features and includes images of the demo. The readme should clearly explain the components and their capabilities.
+Going Above and Beyond (Options to score above 90%)
+Here are some ideas to go beyond the minimum requirements, but feel free to explore other options:
 
- 
-float x{}, y{}, angle{};
-(or wrap in a small struct)
-
-Methods
-
- 
-virtual ~Object() = default;
-virtual void update() = 0;
-virtual void draw() = 0;
- 
-//Factory Function Examples
-﻿std::unique_ptr<Object> Enemy::create(const tinyxml2::XMLElement* xmlElement) 
-﻿OR  
-﻿std::unique_ptr<Object> createEnemy(const tinyxml2::XMLElement* xmlElement)
-Each concrete type overrides update, draw, and create.
-
-
-
-Library — Library.h/.cpp
-Holds factory lambdas so you don’t if/else on type strings.
-
-Members
-
- 
-#include <unordered_map>
-#include <functional>
- 
-struct Library {
-    std::unordered_map<
-        std::string,
-        std::function<std::unique_ptr<Object>(const tinyxml2::XMLElement*)>
-    > map;
- 
-    Library(); // registers types
-};
-Registration example
-
- 
-Library::Library() {
-    map["Player"] = Player::create;
-    //etc
-}
-Engine — Engine.h/.cpp
-Owns the library by value and a list of created objects.
-
-Members
-
- 
-struct Engine {
-    Library objectLibrary; // not a unique_ptr
-    std::vector<std::unique_ptr<Object>> objects;
-    Engine() {}
-    Engine(const std::string& levelPath) { loadLevel(levelPath); }
-    void loadLevel(const std::string& levelPath);
-    void update();
-    void draw();
-};
-main (Engine on the stack)
- 
-int main() {
-    std::string path = "assets/level.xml";
-    Engine engine(path); // STACK allocation
- 
-    // Optional: iterate and print details
-    for (int i = 0; i < engine.objects.size(); ++i) {
-        std::cout << "[Main] obj#" << i
-                  << " pos=(" << engine.objects[i]->x
-                  << ", " << engine.objects[i]->y << ")"
-                  << " angle=" << engine.objects[i]->angle << "\n";
-    }
- 
-    // while (engine.run()) { /* handle input, etc. */ }
-    return 0;
-}
-Submission
-Prefer a GitHub repo link (grant access if private).
-Or upload a zip of the full solution. It must build and run.
-Folder layout above is just an example—use what fits your project, but keep it tidy and reproducible.
-Optional Enhancements
-Save state back to XML.
-Add JSON/YAML support alongside XML.
-More object types/components; simple renderer; logging levels, etc.
+Dynamic Object Creation: Create dynamic objects (like bullets or arrows) when a button is pressed. Objects should spawn relative to the player and move in the correct direction.
+Dynamic Object Deletion: Implement logic to delete objects after certain conditions (e.g., off-screen or after a time limit). Consider adding components like TimedLifeComponent (decrements over time) or OffScreenComponent (detects if an object is off the screen).
+Toggleable Map: Implement a minimap that toggles on/off with a key (e.g., 'm'). This map should display all game objects in real-time and update as the game progresses.
+Beyond the Ideas Above
+These are just suggestions for going above and beyond. You can implement other features or ideas to exceed expectations, such as enhanced AI behaviors, more complex physics, or sophisticated input handling. Be creative and experiment with additional functionality to impress!
