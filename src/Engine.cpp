@@ -44,7 +44,7 @@ void Engine::cleanupProjectiles() {
         }
     }
     
-    // Log cleanup activity
+    Log cleanup activity
     if (gameObjects.size() != initialSize) {
         SDL_Log("Cleaned up %zu projectiles, %zu objects remaining", 
                 initialSize - gameObjects.size(), gameObjects.size());

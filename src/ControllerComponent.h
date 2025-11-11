@@ -8,10 +8,10 @@
 class ControllerComponent : public Component {
 public:
     ControllerComponent(GameObject& parent, double speed = 5.0)
-        : Component(parent), speed(speed), rotationSpeed(3.0), lastSpacePressed(false) {}
+        : Component(parent), speed(speed), rotationSpeed(3.0), fireTimer(10) {}
 
     ControllerComponent(GameObject& parent, double speed, double rotationSpeed)
-        : Component(parent), speed(speed), rotationSpeed(rotationSpeed), lastSpacePressed(false) {}
+        : Component(parent), speed(speed), rotationSpeed(rotationSpeed), fireTimer(10) {}
 
     // Set callback for when projectile should be spawned
     void setProjectileSpawnCallback(std::function<void(double, double, double)> callback) {
@@ -56,13 +56,18 @@ public:
             body->angle += 360.0;
         }
 
-        // Handle projectile shooting (space bar)
+        // Handle projectile shooting (space bar) - rapid fire when held
         bool spacePressed = Input::isKeyDown(SDLK_SPACE);
-        if (spacePressed && !lastSpacePressed && spawnProjectile) {
-            // Spawn projectile at player position, moving in player's facing direction
-            spawnProjectile(body->x + 32, body->y + 32, body->angle);  // +32 to center of sprite
+        if (spacePressed && spawnProjectile) {
+            fireTimer++;
+            // Fire every 10 frames (about 6 shots per second at 60fps)
+            if (fireTimer >= 1) {
+                spawnProjectile(body->x + 32, body->y + 32, body->angle);  // +32 to center of sprite
+                fireTimer = 0;  // Reset timer
+            }
+        } else {
+            fireTimer = 1;  // Ready to fire immediately when space is pressed
         }
-        lastSpacePressed = spacePressed;
     }
 
     void draw() override {
@@ -72,6 +77,6 @@ public:
 private:
     double speed;
     double rotationSpeed;
-    bool lastSpacePressed;  // To detect space key press (not hold)
+    int fireTimer;  // Timer for rapid fire spacing
     std::function<void(double, double, double)> spawnProjectile;  // Callback to spawn projectile
 };
