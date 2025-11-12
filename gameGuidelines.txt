@@ -2,14 +2,16 @@ Game Design Document
 Premise
 The game is relatively simple. In this infinite side scroller, you play as a rocket, which follows your mouse, and navigate through an asteroid field, avoiding hitting any asteroids. That's about it, pretty simple concept, but possible hours of fun.
 
-Level design
+Level design:
 There won't necessarily be levels, but rather the random generation of the asteroids will get more frequent. This will make it more difficult to navigate through the field.
 
-Mechanics
+Mechanics:
 The rocket will have momentum, so it won't instantly react to mouse movements. The speed of the rocket will have a slow ramp-up, and it will depend on how far the mouse is from the rocket, creating a trade-off. Having the mouse close to the rocket will allow for finer control, but having it far away allows for greater speed.
 
-Media integration
+Media integration:
 There will be a graphic for the rocket, and multiple graphics for the asteroids. There will be a repeating background of stars. Some very “space” sounding royalty-free music will play if I can find any. There will also be an explosion sound when an asteroid is hit, as well as an explosion graphic.
 
-
-Project structure should be component based. assets and objects should be in xml, such as texture names.
+Rules:
+Project structure should be component based
+Assets and objects should be in xml, such as texture names.
+Whenever Box2D is used, it is version 3
