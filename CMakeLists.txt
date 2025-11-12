@@ -16,10 +16,15 @@ find_package(nlohmann_json CONFIG REQUIRED)
 
 # Create executable with component-based architecture
 add_executable(demo 
-    src/main.cpp 
+    src/main.cpp
     src/Engine.cpp
-    src/Input.cpp
-    src/Textures.cpp
+    src/View.cpp
+    src/AssetManager.cpp
+    src/GameObject.cpp
+    src/InputComponent.cpp
+    src/SpriteComponent.cpp
+    src/PlayerControlComponent.cpp
+    src/CameraFollowComponent.cpp
 )
 
 # Link libraries

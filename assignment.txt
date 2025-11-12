@@ -1,0 +1,35 @@
+Learning Objectives:
+
+Understand how to apply SDL2’s low-level rendering and event handling capabilities.
+Demonstrate abstraction of SDL2-specific capabilities within Graphics and Input devices.
+Understand how to apply Art and Game Asset Libraries.
+Demonstrate the separation of the game state from the game view (i.e., the game version of model-view-control).
+Project Overview:
+
+In this project, you will implement the graphics and controls for your game. While it's not necessary to get all the game functionality working, the following should be accomplished:
+
+Sprites should appear on the screen.
+Keyboard or mouse input should trigger actions.
+The view should update based on a sprite's location.
+Requirements:
+
+Build on Previous Work: Continue developing your game based on prior assignments or tasks.
+Asset Management Using XML: Use XML to load your assets, or dynamically load them by enumerating files in a folder. Textures should be retrieved from a map (a data structure mapping asset names to texture files).
+View Class Implementation: Add a View class to the engine. The View class should track the center of the view (and optionally the scale and rotation angle). A view should be static stored and initialized in the engine.
+Modify the sprite draw function to account for the view.
+Optional: Consider how you could have multiple views displayed in different locations on the screen, each with different perspectives.
+You may also want to add methods to the View class that help transform points and rectangles to make drawing simpler.
+Frame Rate Limiting: Add frame rate limiting to the engine. You should be able to statically set the frame rate, and the game loop should perform a wait to maintain the ideal frame rate. If the processing takes too long, it skips waiting.
+The engine will continually update a static variable for deltaTime (the time the last frame took).
+Use this deltaTime in your movement and physics-based code to ensure smooth and consistent animations and actions across different systems.
+
+
+Playable Demo:
+
+Ensure that your demo showcases features implemented above.
+
+Submission:
+
+Submit your code via GitHub, ensuring your repository is up-to-date using GitHub Desktop. Provide a link to your repository.
+There should be at least 3 meaningful commits since your last submission complete with comments.
+Include a readme.md that briefly describes the game engine's features and includes images of the demo. (Add additional meaningful text and graphics to your readme from last time.)

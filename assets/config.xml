@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<assets>
+    <textures>
+        <texture id="rocket" path="assets/rocket.png" />
+        <texture id="asteroid" path="assets/asteroid.png" />
+    </textures>
+    
+    <gameObjects>
+        <object type="player">
+            <position x="0" y="0" />
+            <sprite texture="rocket" width="80" height="40" />
+        </object>
+        
+        <object type="asteroid">
+            <position x="-300" y="-200" />
+            <sprite texture="asteroid" width="96" height="96" />
+        </object>
+        
+        <object type="asteroid">
+            <position x="400" y="100" />
+            <sprite texture="asteroid" width="64" height="64" />
+        </object>
+        
+        <object type="asteroid">
+            <position x="-150" y="300" />
+            <sprite texture="asteroid" width="80" height="80" />
+        </object>
+        
+        <object type="asteroid">
+            <position x="200" y="-350" />
+            <sprite texture="asteroid" width="128" height="128" />
+        </object>
+    </gameObjects>
+</assets>
