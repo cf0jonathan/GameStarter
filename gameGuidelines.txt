@@ -10,8 +10,3 @@ The rocket will have momentum, so it won't instantly react to mouse movements. T
 
 Media integration:
 There will be a graphic for the rocket, and multiple graphics for the asteroids. There will be a repeating background of stars. Some very “space” sounding royalty-free music will play if I can find any. There will also be an explosion sound when an asteroid is hit, as well as an explosion graphic.
-
-Rules:
-Project structure should be component based
-Assets and objects should be in xml, such as texture names.
-Whenever Box2D is used, it is version 3
