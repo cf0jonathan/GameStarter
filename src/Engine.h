@@ -19,9 +19,17 @@ public:
     SDL_Renderer* getRenderer() { return renderer; }
     bool isRunning() { return running; }
     
+    // Window dimensions
+    int getWindowWidth() const { return windowWidth; }
+    int getWindowHeight() const { return windowHeight; }
+    
     // Frame rate control
     static void setTargetFPS(int fps);
     static float getDeltaTime() { return deltaTime; }
+    
+    // Mouse state
+    static int getMouseX() { return mouseX; }
+    static int getMouseY() { return mouseY; }
     
 private:
     Engine() = default;
@@ -37,11 +45,17 @@ private:
     SDL_Window* window = nullptr;
     SDL_Renderer* renderer = nullptr;
     bool running = false;
+    int windowWidth = 0;
+    int windowHeight = 0;
     
     // Frame rate limiting
     static int targetFPS;
     static float deltaTime;
     Uint32 lastFrameTime = 0;
+    
+    // Mouse state
+    static int mouseX;
+    static int mouseY;
     
     // Game objects
     std::vector<std::unique_ptr<GameObject>> gameObjects;

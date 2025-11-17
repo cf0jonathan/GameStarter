@@ -5,12 +5,16 @@
 #include "InputComponent.h"
 #include "PlayerControlComponent.h"
 #include "CameraFollowComponent.h"
+#include "RotateToMouseComponent.h"
+#include "MoveToMouseComponent.h"
 #include "View.h"
 #include <tinyxml2.h>
 #include <iostream>
 
 int Engine::targetFPS = 60;
 float Engine::deltaTime = 0.0f;
+int Engine::mouseX = 0;
+int Engine::mouseY = 0;
 
 Engine& Engine::getInstance() {
     static Engine instance;
@@ -30,6 +34,9 @@ bool Engine::init(const std::string& title, int width, int height) {
         width, height,
         SDL_WINDOW_SHOWN
     );
+    
+    windowWidth = width;
+    windowHeight = height;
     
     if (!window) {
         std::cerr << "Window could not be created! SDL_Error: " << SDL_GetError() << std::endl;
@@ -99,6 +106,18 @@ void Engine::loadGameObjectsFromXML(const std::string& filepath) {
         if (std::string(type) == "player") {
             gameObj->addComponent<InputComponent>();
             gameObj->addComponent<PlayerControlComponent>();
+            gameObj->addComponent<RotateToMouseComponent>();
+            
+            // Add MoveToMouseComponent with configurable speed and arrival radius
+            auto* moveToMouse = gameObj->addComponent<MoveToMouseComponent>();
+            tinyxml2::XMLElement* moveElement = objElement->FirstChildElement("moveToMouse");
+            if (moveElement) {
+                float speed = moveElement->FloatAttribute("speed", 200.0f);
+                float arrivalRadius = moveElement->FloatAttribute("arrivalRadius", 5.0f);
+                moveToMouse->setMoveSpeed(speed);
+                moveToMouse->setArrivalRadius(arrivalRadius);
+            }
+            
             gameObj->addComponent<CameraFollowComponent>();
         }
         
@@ -138,6 +157,10 @@ void Engine::handleEvents() {
             if (event.key.keysym.sym == SDLK_ESCAPE) {
                 running = false;
             }
+        }
+        if (event.type == SDL_MOUSEMOTION) {
+            mouseX = event.motion.x;
+            mouseY = event.motion.y;
         }
     }
 }

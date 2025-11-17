@@ -26,6 +26,7 @@
 - C++17, minimal headers per file, forward‑declare where practical.
 - Avoid unnecessary dependencies; keep `CMakeLists.txt` aligned with actual usage.
 - Keep changes focused; avoid drive‑by refactors unrelated to the task.
+- Prefer variables/constants over hardcoded magic numbers. Retrieve runtime values (window size, etc.) from appropriate systems rather than assuming fixed dimensions.
 - When physics is added, prefer modern Box2D v3 creation patterns (explicit settings structs) and no backward‑compat shim layers.
 
 ## Validation

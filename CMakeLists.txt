@@ -25,6 +25,8 @@ add_executable(demo
     src/SpriteComponent.cpp
     src/PlayerControlComponent.cpp
     src/CameraFollowComponent.cpp
+    src/RotateToMouseComponent.cpp
+    src/MoveToMouseComponent.cpp
 )
 
 # Link libraries

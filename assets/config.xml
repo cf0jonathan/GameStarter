@@ -9,6 +9,7 @@
         <object type="player">
             <position x="0" y="0" />
             <sprite texture="rocket" width="80" height="40" />
+            <moveToMouse speed="300.0" arrivalRadius="10.0" />
         </object>
         
         <object type="asteroid">
