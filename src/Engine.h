@@ -1,5 +1,6 @@
 #pragma once
 #include <SDL2/SDL.h>
+#include <box2d/box2d.h>
 #include <string>
 #include <map>
 #include <memory>
@@ -34,6 +35,9 @@ public:
     static int getMouseX() { return mouseX; }
     static int getMouseY() { return mouseY; }
     
+    // Physics
+    b2WorldId getPhysicsWorld() const { return physicsWorldId; }
+    
     // Asset loading
     void loadGameObjectsFromXML(const std::string& filepath);
     
@@ -63,6 +67,9 @@ private:
     // Mouse state
     static int mouseX;
     static int mouseY;
+    
+    // Physics
+    b2WorldId physicsWorldId = b2_nullWorldId;
     
     // Game objects
     std::vector<std::unique_ptr<GameObject>> gameObjects;

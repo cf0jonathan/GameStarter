@@ -1,6 +1,7 @@
 #include "MoveToMouseComponent.h"
 #include "GameObject.h"
 #include "TransformComponent.h"
+#include "PhysicsBodyComponent.h"
 #include "Engine.h"
 #include "View.h"
 #include <SDL2/SDL.h>
@@ -8,19 +9,15 @@
 
 void MoveToMouseComponent::init() {
     transform = owner->getComponent<TransformComponent>();
+    physicsBody = owner->getComponent<PhysicsBodyComponent>();
 }
 
 void MoveToMouseComponent::update(float dt) {
-    if (!transform) return;
+    if (!transform || !physicsBody || !physicsBody->isInitialized()) return;
 
-    // Update mouse button state from SDL events
+    // Update mouse button state
     Uint32 mouseState = SDL_GetMouseState(nullptr, nullptr);
     isMouseButtonDown = (mouseState & SDL_BUTTON(SDL_BUTTON_LEFT)) != 0;
-
-    // Only move when left mouse button is held
-    if (!isMouseButtonDown) {
-        return;
-    }
 
     // Get mouse position in world space
     int mouseScreenX = Engine::getMouseX();
@@ -38,19 +35,22 @@ void MoveToMouseComponent::update(float dt) {
     const float distSquared = dx * dx + dy * dy;
     const float dist = std::sqrt(distSquared);
 
-    // Arrival: stop if within arrival radius
-    if (dist < arrivalRadius) {
+    b2BodyId bodyId = physicsBody->getBodyId();
+
+    // If not holding button or within arrival radius, stop
+    if (!isMouseButtonDown || dist < arrivalRadius) {
+        b2Body_SetLinearVelocity(bodyId, {0.0f, 0.0f});
         return;
     }
 
-    // Normalize direction
+    // Normalize direction and set velocity
     const float invDist = 1.0f / dist;
     const float dirX = dx * invDist;
     const float dirY = dy * invDist;
 
-    // Calculate step size with arrival clamp
-    const float stepSize = std::min(moveSpeed * dt, dist - arrivalRadius);
-
-    // Update position
-    transform->setPosition(posX + dirX * stepSize, posY + dirY * stepSize);
+    // Convert velocity to physics units (pixels/sec to meters/sec)
+    float velocityMetersPerSec = moveSpeed / PhysicsBodyComponent::PIXELS_PER_METER;
+    b2Vec2 velocity = {dirX * velocityMetersPerSec, dirY * velocityMetersPerSec};
+    
+    b2Body_SetLinearVelocity(bodyId, velocity);
 }

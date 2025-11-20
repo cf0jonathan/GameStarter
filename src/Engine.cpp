@@ -8,6 +8,7 @@
 #include "RotateToMouseComponent.h"
 #include "MoveToMouseComponent.h"
 #include "BackgroundComponent.h"
+#include "PhysicsBodyComponent.h"
 #include "View.h"
 #include <tinyxml2.h>
 #include <iostream>
@@ -51,6 +52,11 @@ bool Engine::init(const std::string& title, int width, int height) {
         std::cerr << "Renderer could not be created! SDL_Error: " << SDL_GetError() << std::endl;
         return false;
     }
+    
+    // Create physics world with zero gravity (space environment)
+    b2WorldDef worldDef = b2DefaultWorldDef();
+    worldDef.gravity = {0.0f, 0.0f};
+    physicsWorldId = b2CreateWorld(&worldDef);
     
     running = true;
     lastFrameTime = SDL_GetTicks();
@@ -140,6 +146,28 @@ void Engine::loadGameObjectsFromXML(const std::string& filepath) {
             }
         }
         
+        // Add Physics component if present
+        tinyxml2::XMLElement* physicsElement = objElement->FirstChildElement("physics");
+        if (physicsElement) {
+            auto* physics = gameObj->addComponent<PhysicsBodyComponent>();
+            
+            const char* typeStr = physicsElement->Attribute("type");
+            if (typeStr) {
+                if (std::string(typeStr) == "static") physics->setBodyType(BodyType::Static);
+                else if (std::string(typeStr) == "kinematic") physics->setBodyType(BodyType::Kinematic);
+                else physics->setBodyType(BodyType::Dynamic);
+            }
+            
+            const char* shapeStr = physicsElement->Attribute("shape");
+            if (shapeStr) {
+                if (std::string(shapeStr) == "ellipse") physics->setShapeType(ShapeType::Ellipse);
+                else physics->setShapeType(ShapeType::Circle);
+            }
+            
+            float density = physicsElement->FloatAttribute("density", 1.0f);
+            physics->setDensity(density);
+        }
+        
         // Add type-specific components
         if (std::string(type) == "player") {
             gameObj->addComponent<InputComponent>();
@@ -218,6 +246,11 @@ void Engine::handleEvents() {
 }
 
 void Engine::update() {
+    // Step physics simulation
+    if (b2World_IsValid(physicsWorldId)) {
+        b2World_Step(physicsWorldId, fixedDeltaTime, 4);
+    }
+    
     // Use fixedDeltaTime to ensure movement independent of render FPS
     for (auto& obj : gameObjects) {
         obj->update(fixedDeltaTime);
@@ -242,6 +275,12 @@ void Engine::quit() {
 }
 
 void Engine::clean() {
+    // Destroy physics world
+    if (b2World_IsValid(physicsWorldId)) {
+        b2DestroyWorld(physicsWorldId);
+        physicsWorldId = b2_nullWorldId;
+    }
+    
     if (renderer) {
         SDL_DestroyRenderer(renderer);
         renderer = nullptr;

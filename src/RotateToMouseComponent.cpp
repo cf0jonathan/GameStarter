@@ -1,12 +1,14 @@
 #include "RotateToMouseComponent.h"
 #include "GameObject.h"
 #include "TransformComponent.h"
+#include "PhysicsBodyComponent.h"
 #include "Engine.h"
 #include "View.h"
 #include <cmath>
 
 void RotateToMouseComponent::init() {
     transform = owner->getComponent<TransformComponent>();
+    physicsBody = owner->getComponent<PhysicsBodyComponent>();
 }
 
 void RotateToMouseComponent::update(float deltaTime) {
@@ -29,5 +31,13 @@ void RotateToMouseComponent::update(float deltaTime) {
     float angleRadians = std::atan2(dy, dx);
     float angleDegrees = angleRadians * 180.0f / 3.14159265f;
     
-    transform->setRotation(angleDegrees);
+    // If physics body exists, set rotation on it
+    if (physicsBody && physicsBody->isInitialized()) {
+        b2BodyId bodyId = physicsBody->getBodyId();
+        b2Rot rotation = b2MakeRot(angleRadians);
+        b2Body_SetTransform(bodyId, b2Body_GetPosition(bodyId), rotation);
+    } else {
+        // Fallback to direct transform
+        transform->setRotation(angleDegrees);
+    }
 }

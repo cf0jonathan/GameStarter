@@ -22,6 +22,9 @@ public:
         this->a = a;
     }
     
+    float getWidth() const { return width; }
+    float getHeight() const { return height; }
+    
 private:
     TransformComponent* transform = nullptr;
     std::string textureId;

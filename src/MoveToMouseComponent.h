@@ -2,11 +2,11 @@
 #include "Component.h"
 
 class TransformComponent;
+class PhysicsBodyComponent;
 
 /**
  * Moves the GameObject toward the mouse position when the left mouse button is held.
- * Kinematic movement with arrival radius to prevent overshoot.
- * Design note: When Box2D is added, swap direct Transform writes for body.SetLinearVelocity.
+ * Uses velocity-based physics movement via Box2D body.
  */
 class MoveToMouseComponent : public Component {
 public:
@@ -25,4 +25,5 @@ private:
     bool isMouseButtonDown = false; // track left mouse button state
 
     TransformComponent* transform = nullptr;
+    PhysicsBodyComponent* physicsBody = nullptr;
 };

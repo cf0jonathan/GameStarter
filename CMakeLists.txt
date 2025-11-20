@@ -29,6 +29,7 @@ add_executable(demo
     src/MoveToMouseComponent.cpp
     src/BackgroundComponent.cpp
     src/Settings.cpp
+    src/PhysicsBodyComponent.cpp
 )
 
 # Link libraries

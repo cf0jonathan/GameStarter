@@ -2,6 +2,7 @@
 #include "Component.h"
 
 class TransformComponent;
+class PhysicsBodyComponent;
 
 class RotateToMouseComponent : public Component {
 public:
@@ -12,4 +13,5 @@ public:
     
 private:
     TransformComponent* transform = nullptr;
+    PhysicsBodyComponent* physicsBody = nullptr;
 };
