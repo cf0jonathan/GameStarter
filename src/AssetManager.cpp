@@ -59,6 +59,15 @@ SDL_Texture* AssetManager::getTexture(const std::string& id) {
     return nullptr;
 }
 
+bool AssetManager::getTextureDimensions(const std::string& id, int& width, int& height) {
+    SDL_Texture* texture = getTexture(id);
+    if (texture) {
+        SDL_QueryTexture(texture, nullptr, nullptr, &width, &height);
+        return true;
+    }
+    return false;
+}
+
 void AssetManager::clean() {
     for (auto& pair : textures) {
         if (pair.second) {

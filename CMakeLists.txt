@@ -27,6 +27,8 @@ add_executable(demo
     src/CameraFollowComponent.cpp
     src/RotateToMouseComponent.cpp
     src/MoveToMouseComponent.cpp
+    src/BackgroundComponent.cpp
+    src/Settings.cpp
 )
 
 # Link libraries

@@ -26,10 +26,16 @@ public:
     // Frame rate control
     static void setTargetFPS(int fps);
     static float getDeltaTime() { return deltaTime; }
+    static void setLogicFPS(int fps);
+    static int getLogicFPS() { return logicFPS; }
+    static float getFixedDeltaTime() { return fixedDeltaTime; }
     
     // Mouse state
     static int getMouseX() { return mouseX; }
     static int getMouseY() { return mouseY; }
+    
+    // Asset loading
+    void loadGameObjectsFromXML(const std::string& filepath);
     
 private:
     Engine() = default;
@@ -40,7 +46,6 @@ private:
     void handleEvents();
     void update();
     void render();
-    void loadGameObjectsFromXML(const std::string& filepath);
     
     SDL_Window* window = nullptr;
     SDL_Renderer* renderer = nullptr;
@@ -51,6 +56,8 @@ private:
     // Frame rate limiting
     static int targetFPS;
     static float deltaTime;
+    static int logicFPS;          // Fixed update frequency (independent of render FPS)
+    static float fixedDeltaTime;  // Fixed timestep in seconds
     Uint32 lastFrameTime = 0;
     
     // Mouse state

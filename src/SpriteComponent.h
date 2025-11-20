@@ -14,6 +14,7 @@ public:
     
     void setTexture(const std::string& textureId) { this->textureId = textureId; }
     void setSize(float w, float h) { width = w; height = h; }
+    void setSizePreserveAspect(float size, bool useWidth = true);
     void setColor(Uint8 r, Uint8 g, Uint8 b, Uint8 a = 255) {
         this->r = r;
         this->g = g;

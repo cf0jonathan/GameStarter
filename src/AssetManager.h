@@ -9,6 +9,7 @@ public:
     
     bool loadFromXML(const std::string& filepath);
     SDL_Texture* getTexture(const std::string& id);
+    bool getTextureDimensions(const std::string& id, int& width, int& height);
     
     void clean();
     

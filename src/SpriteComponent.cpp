@@ -9,6 +9,29 @@ void SpriteComponent::init() {
     transform = owner->getComponent<TransformComponent>();
 }
 
+void SpriteComponent::setSizePreserveAspect(float size, bool useWidth) {
+    if (textureId.empty()) {
+        // No texture, just set both to size
+        width = height = size;
+        return;
+    }
+    
+    int texWidth, texHeight;
+    if (AssetManager::getInstance().getTextureDimensions(textureId, texWidth, texHeight)) {
+        float aspectRatio = static_cast<float>(texWidth) / static_cast<float>(texHeight);
+        if (useWidth) {
+            width = size;
+            height = size / aspectRatio;
+        } else {
+            height = size;
+            width = size * aspectRatio;
+        }
+    } else {
+        // Couldn't get dimensions, fall back to square
+        width = height = size;
+    }
+}
+
 void SpriteComponent::render() {
     if (!transform) return;
     

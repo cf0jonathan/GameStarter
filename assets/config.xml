@@ -1,35 +1,45 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <assets>
+    <settings>
+        <display width="1440" height="720" />
+        <timing renderFPS="360" logicFPS="360" />
+    </settings>
     <textures>
         <texture id="rocket" path="assets/rocket.png" />
         <texture id="asteroid" path="assets/asteroid.png" />
+        <texture id="stars" path="assets/stars.png" />
     </textures>
     
     <gameObjects>
+        <!-- Background (rendered first) -->
+        <object type="background">
+            <background texture="stars" tileWidth="800" tileHeight="600" scrollX="0.3" scrollY="0.3" />
+        </object>
+        
         <object type="player">
             <position x="0" y="0" />
-            <sprite texture="rocket" width="80" height="40" />
+            <sprite texture="rocket" width="120" />
             <moveToMouse speed="300.0" arrivalRadius="10.0" />
         </object>
         
         <object type="asteroid">
             <position x="-300" y="-200" />
-            <sprite texture="asteroid" width="96" height="96" />
+            <sprite texture="asteroid" width="96" />
         </object>
         
         <object type="asteroid">
             <position x="400" y="100" />
-            <sprite texture="asteroid" width="64" height="64" />
+            <sprite texture="asteroid" width="64" />
         </object>
         
         <object type="asteroid">
             <position x="-150" y="300" />
-            <sprite texture="asteroid" width="80" height="80" />
+            <sprite texture="asteroid" width="80" />
         </object>
         
         <object type="asteroid">
             <position x="200" y="-350" />
-            <sprite texture="asteroid" width="128" height="128" />
+            <sprite texture="asteroid" width="128" />
         </object>
     </gameObjects>
 </assets>

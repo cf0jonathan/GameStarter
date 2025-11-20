@@ -7,6 +7,7 @@
 #include "CameraFollowComponent.h"
 #include "RotateToMouseComponent.h"
 #include "MoveToMouseComponent.h"
+#include "BackgroundComponent.h"
 #include "View.h"
 #include <tinyxml2.h>
 #include <iostream>
@@ -15,6 +16,8 @@ int Engine::targetFPS = 60;
 float Engine::deltaTime = 0.0f;
 int Engine::mouseX = 0;
 int Engine::mouseY = 0;
+int Engine::logicFPS = 60;
+float Engine::fixedDeltaTime = 1.0f / 60.0f;
 
 Engine& Engine::getInstance() {
     static Engine instance;
@@ -52,9 +55,6 @@ bool Engine::init(const std::string& title, int width, int height) {
     running = true;
     lastFrameTime = SDL_GetTicks();
     
-    // Load game objects from XML
-    loadGameObjectsFromXML("assets/config.xml");
-    
     std::cout << "Engine initialized successfully!" << std::endl;
     return true;
 }
@@ -81,6 +81,26 @@ void Engine::loadGameObjectsFromXML(const std::string& filepath) {
         
         auto gameObj = std::make_unique<GameObject>();
         
+        // Handle background type separately (no transform, no sprite)
+        if (std::string(type) == "background") {
+            auto* background = gameObj->addComponent<BackgroundComponent>();
+            tinyxml2::XMLElement* bgElement = objElement->FirstChildElement("background");
+            if (bgElement) {
+                const char* texture = bgElement->Attribute("texture");
+                if (texture) background->setTexture(texture);
+                
+                float tileWidth = bgElement->FloatAttribute("tileWidth", 800.0f);
+                float tileHeight = bgElement->FloatAttribute("tileHeight", 600.0f);
+                background->setTileSize(tileWidth, tileHeight);
+                
+                float scrollX = bgElement->FloatAttribute("scrollX", 0.0f);
+                float scrollY = bgElement->FloatAttribute("scrollY", 0.0f);
+                background->setScrollSpeed(scrollX, scrollY);
+            }
+            gameObjects.push_back(std::move(gameObj));
+            continue;
+        }
+        
         // Add Transform component
         auto* transform = gameObj->addComponent<TransformComponent>();
         tinyxml2::XMLElement* posElement = objElement->FirstChildElement("position");
@@ -97,9 +117,27 @@ void Engine::loadGameObjectsFromXML(const std::string& filepath) {
             const char* texture = spriteElement->Attribute("texture");
             if (texture) sprite->setTexture(texture);
             
-            float width = spriteElement->FloatAttribute("width", 50.0f);
-            float height = spriteElement->FloatAttribute("height", 50.0f);
-            sprite->setSize(width, height);
+            // Support either explicit width+height or single dimension with aspect preservation
+            bool hasWidth = spriteElement->Attribute("width") != nullptr;
+            bool hasHeight = spriteElement->Attribute("height") != nullptr;
+            
+            if (hasWidth && hasHeight) {
+                // Both specified: use explicit dimensions
+                float width = spriteElement->FloatAttribute("width");
+                float height = spriteElement->FloatAttribute("height");
+                sprite->setSize(width, height);
+            } else if (hasWidth) {
+                // Only width: preserve aspect ratio from width
+                float width = spriteElement->FloatAttribute("width");
+                sprite->setSizePreserveAspect(width, true);
+            } else if (hasHeight) {
+                // Only height: preserve aspect ratio from height
+                float height = spriteElement->FloatAttribute("height");
+                sprite->setSizePreserveAspect(height, false);
+            } else {
+                // Neither specified: use default 50x50
+                sprite->setSize(50.0f, 50.0f);
+            }
         }
         
         // Add type-specific components
@@ -128,21 +166,35 @@ void Engine::loadGameObjectsFromXML(const std::string& filepath) {
 }
 
 void Engine::run() {
-    const int frameDelay = 1000 / targetFPS;
+    const int frameDelay = 1000 / targetFPS; // render cap
+    Uint32 previousTicks = SDL_GetTicks();
+    float accumulator = 0.0f;
     
     while (running) {
-        Uint32 frameStart = SDL_GetTicks();
+        Uint32 currentTicks = SDL_GetTicks();
+        float frameTime = (currentTicks - previousTicks) / 1000.0f; // seconds
+        previousTicks = currentTicks;
+        
+        // Clamp very large frame time to avoid spiral of death
+        if (frameTime > 0.25f) frameTime = 0.25f;
+        accumulator += frameTime;
         
         handleEvents();
-        update();
+        
+        // Fixed timestep updates
+        while (accumulator >= fixedDeltaTime) {
+            deltaTime = fixedDeltaTime; // expose for components querying getDeltaTime()
+            update();
+            accumulator -= fixedDeltaTime;
+        }
+        
         render();
         
-        Uint32 frameTime = SDL_GetTicks() - frameStart;
-        deltaTime = frameTime / 1000.0f;
-        
-        if (frameDelay > frameTime) {
-            SDL_Delay(frameDelay - frameTime);
-            deltaTime = frameDelay / 1000.0f;
+        // Frame limiting for rendering only
+        Uint32 afterRenderTicks = SDL_GetTicks();
+        Uint32 loopFrameTimeMs = afterRenderTicks - currentTicks;
+        if (frameDelay > loopFrameTimeMs) {
+            SDL_Delay(frameDelay - loopFrameTimeMs);
         }
     }
 }
@@ -166,9 +218,9 @@ void Engine::handleEvents() {
 }
 
 void Engine::update() {
-    // Update all game objects
+    // Use fixedDeltaTime to ensure movement independent of render FPS
     for (auto& obj : gameObjects) {
-        obj->update(deltaTime);
+        obj->update(fixedDeltaTime);
     }
 }
 
@@ -204,4 +256,10 @@ void Engine::clean() {
 
 void Engine::setTargetFPS(int fps) {
     targetFPS = fps;
+}
+
+void Engine::setLogicFPS(int fps) {
+    if (fps <= 0) return;
+    logicFPS = fps;
+    fixedDeltaTime = 1.0f / static_cast<float>(logicFPS);
 }
