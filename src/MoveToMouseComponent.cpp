@@ -37,20 +37,28 @@ void MoveToMouseComponent::update(float dt) {
 
     b2BodyId bodyId = physicsBody->getBodyId();
 
-    // If not holding button or within arrival radius, stop
+    // If not holding button or within arrival radius, apply damping (let physics slow naturally)
     if (!isMouseButtonDown || dist < arrivalRadius) {
-        b2Body_SetLinearVelocity(bodyId, {0.0f, 0.0f});
-        return;
+        return; // do nothing; damping handles slowdown
     }
 
-    // Normalize direction and set velocity
+    // Normalize direction
     const float invDist = 1.0f / dist;
     const float dirX = dx * invDist;
     const float dirY = dy * invDist;
 
-    // Convert velocity to physics units (pixels/sec to meters/sec)
-    float velocityMetersPerSec = moveSpeed / PhysicsBodyComponent::PIXELS_PER_METER;
-    b2Vec2 velocity = {dirX * velocityMetersPerSec, dirY * velocityMetersPerSec};
-    
-    b2Body_SetLinearVelocity(bodyId, velocity);
+    // Apply force toward mouse (convert thrustForce from pixels to meters units)
+    float forceMeters = thrustForce / PhysicsBodyComponent::PIXELS_PER_METER; // simple scaling
+    b2Vec2 force = {dirX * forceMeters, dirY * forceMeters};
+    b2Body_ApplyForceToCenter(bodyId, force, true);
+
+    // Cap max speed
+    b2Vec2 vel = b2Body_GetLinearVelocity(bodyId);
+    float speed = std::sqrt(vel.x * vel.x + vel.y * vel.y);
+    float maxSpeedMeters = maxSpeed / PhysicsBodyComponent::PIXELS_PER_METER;
+    if (speed > maxSpeedMeters && speed > 0.0f) {
+        float scale = maxSpeedMeters / speed;
+        b2Vec2 clamped = {vel.x * scale, vel.y * scale};
+        b2Body_SetLinearVelocity(bodyId, clamped);
+    }
 }

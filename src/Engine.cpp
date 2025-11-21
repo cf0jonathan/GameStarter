@@ -164,8 +164,10 @@ void Engine::loadGameObjectsFromXML(const std::string& filepath) {
                 else physics->setShapeType(ShapeType::Circle);
             }
             
-            float density = physicsElement->FloatAttribute("density", 1.0f);
-            physics->setDensity(density);
+            physics->setDensity(physicsElement->FloatAttribute("density", 1.0f));
+            physics->setLinearDamping(physicsElement->FloatAttribute("linearDamping", 0.0f));
+            physics->setAngularDamping(physicsElement->FloatAttribute("angularDamping", 0.0f));
+            physics->setFixedRotation(physicsElement->BoolAttribute("fixedRotation", false));
         }
         
         // Add type-specific components
@@ -178,10 +180,9 @@ void Engine::loadGameObjectsFromXML(const std::string& filepath) {
             auto* moveToMouse = gameObj->addComponent<MoveToMouseComponent>();
             tinyxml2::XMLElement* moveElement = objElement->FirstChildElement("moveToMouse");
             if (moveElement) {
-                float speed = moveElement->FloatAttribute("speed", 200.0f);
-                float arrivalRadius = moveElement->FloatAttribute("arrivalRadius", 5.0f);
-                moveToMouse->setMoveSpeed(speed);
-                moveToMouse->setArrivalRadius(arrivalRadius);
+                moveToMouse->setThrustForce(moveElement->FloatAttribute("thrustForce", 20.0f));
+                moveToMouse->setMaxSpeed(moveElement->FloatAttribute("maxSpeed", 400.0f));
+                moveToMouse->setArrivalRadius(moveElement->FloatAttribute("arrivalRadius", 5.0f));
             }
             
             gameObj->addComponent<CameraFollowComponent>();

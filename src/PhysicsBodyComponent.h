@@ -30,6 +30,9 @@ public:
     void setDensity(float d) { density = d; }
     void setFriction(float f) { friction = f; }
     void setRestitution(float r) { restitution = r; }
+    void setLinearDamping(float d) { linearDamping = d; }
+    void setAngularDamping(float d) { angularDamping = d; }
+    void setFixedRotation(bool fr) { fixedRotation = fr; }
     
     // Runtime access
     b2BodyId getBodyId() const { return bodyId; }
@@ -49,4 +52,7 @@ private:
     float density = 1.0f;
     float friction = 0.3f;
     float restitution = 0.0f;
+    float linearDamping = 0.0f;
+    float angularDamping = 0.0f;
+    bool fixedRotation = false;
 };

@@ -26,6 +26,9 @@ void PhysicsBodyComponent::init() {
                    (bodyType == BodyType::Kinematic) ? b2_kinematicBody : b2_dynamicBody;
     bodyDef.position = {transform->getX() / PIXELS_PER_METER, transform->getY() / PIXELS_PER_METER};
     bodyDef.rotation = b2MakeRot(transform->getRotation() * 3.14159f / 180.0f);
+    bodyDef.linearDamping = linearDamping;
+    bodyDef.angularDamping = angularDamping;
+    bodyDef.fixedRotation = fixedRotation;
     
     bodyId = b2CreateBody(worldId, &bodyDef);
     
@@ -65,7 +68,6 @@ void PhysicsBodyComponent::init() {
         shapeId = b2CreatePolygonShape(bodyId, &shapeDef, &polygon);
     }
     
-    // Set friction on the created shape
     // Set friction and restitution on the created shape
     b2Shape_SetFriction(shapeId, friction);
     b2Shape_SetRestitution(shapeId, restitution);
