@@ -19,8 +19,9 @@
         <object type="player">
             <position x="0" y="0" />
             <sprite texture="rocket" width="120" />
-            <physics type="dynamic" shape="ellipse" linearDamping="0.8" angularDamping="0.5" fixedRotation="false" density="1.0" />
-            <moveToMouse thrustForce="25.0" maxSpeed="450.0" arrivalRadius="10.0" />
+            <physics type="dynamic" shape="ellipse" linearDamping="0.8" angularDamping="0.0" fixedRotation="false" density="1.0" />
+            <rotateToMouse rotationMaxSpeed="360" rotationAccel="720" rotationDecel="1080" rotationSlowRadius="60" rotationDeadZone="1" rotationEaseExponent="0.6" />
+            <move thrustForce="250.0" maxSpeed="450.0" />
         </object>
         
         <!-- Asteroid field -->

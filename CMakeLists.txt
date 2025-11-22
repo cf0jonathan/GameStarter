@@ -26,10 +26,11 @@ add_executable(demo
     src/PlayerControlComponent.cpp
     src/CameraFollowComponent.cpp
     src/RotateToMouseComponent.cpp
-    src/MoveToMouseComponent.cpp
+    src/MoveComponent.cpp
     src/BackgroundComponent.cpp
     src/Settings.cpp
     src/PhysicsBodyComponent.cpp
+    src/PhysicsDebugDraw.cpp
 )
 
 # Link libraries

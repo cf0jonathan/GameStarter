@@ -37,6 +37,8 @@ public:
     // Runtime access
     b2BodyId getBodyId() const { return bodyId; }
     bool isInitialized() const { return b2Body_IsValid(bodyId); }
+    BodyType getBodyType() const { return bodyType; }
+    ShapeType getShapeType() const { return shapeType; }
     
     // Pixel-to-meter conversion
     static constexpr float PIXELS_PER_METER = 50.0f;

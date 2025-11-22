@@ -6,10 +6,11 @@
 #include "PlayerControlComponent.h"
 #include "CameraFollowComponent.h"
 #include "RotateToMouseComponent.h"
-#include "MoveToMouseComponent.h"
+#include "MoveComponent.h"
 #include "BackgroundComponent.h"
 #include "PhysicsBodyComponent.h"
 #include "View.h"
+#include "PhysicsDebugDraw.h"
 #include <tinyxml2.h>
 #include <iostream>
 
@@ -174,15 +175,38 @@ void Engine::loadGameObjectsFromXML(const std::string& filepath) {
         if (std::string(type) == "player") {
             gameObj->addComponent<InputComponent>();
             gameObj->addComponent<PlayerControlComponent>();
-            gameObj->addComponent<RotateToMouseComponent>();
             
-            // Add MoveToMouseComponent with configurable speed and arrival radius
-            auto* moveToMouse = gameObj->addComponent<MoveToMouseComponent>();
-            tinyxml2::XMLElement* moveElement = objElement->FirstChildElement("moveToMouse");
+            // Add RotateToMouseComponent with configurable angular velocity model
+            auto* rotateToMouse = gameObj->addComponent<RotateToMouseComponent>();
+            tinyxml2::XMLElement* rotateElement = objElement->FirstChildElement("rotateToMouse");
+            if (rotateElement) {
+                // Backward compatibility: rotationSpeed only
+                if (rotateElement->Attribute("rotationSpeed") &&
+                    !rotateElement->Attribute("rotationMaxSpeed")) {
+                    float base = rotateElement->FloatAttribute("rotationSpeed", 180.0f);
+                    rotateToMouse->setMaxAngularSpeed(base);
+                    rotateToMouse->setAcceleration(base * 2.0f);
+                    rotateToMouse->setDeceleration(base * 3.0f); // stronger braking
+                    rotateToMouse->setSlowRadius(60.0f);
+                    rotateToMouse->setDeadZone(1.0f);
+                    rotateToMouse->setEaseExponent(0.6f);
+                } else {
+                    rotateToMouse->setMaxAngularSpeed(rotateElement->FloatAttribute("rotationMaxSpeed", 360.0f));
+                    rotateToMouse->setAcceleration(rotateElement->FloatAttribute("rotationAccel", 720.0f));
+                    rotateToMouse->setDeceleration(rotateElement->FloatAttribute("rotationDecel", 1080.0f));
+                    rotateToMouse->setSlowRadius(rotateElement->FloatAttribute("rotationSlowRadius", 60.0f));
+                    rotateToMouse->setDeadZone(rotateElement->FloatAttribute("rotationDeadZone", 1.0f));
+                    rotateToMouse->setEaseExponent(rotateElement->FloatAttribute("rotationEaseExponent", 0.6f));
+                }
+            }
+            
+            // Add MoveComponent with configurable thrust (supports both <move> and <moveToMouse> for backward compat)
+            auto* move = gameObj->addComponent<MoveComponent>();
+            tinyxml2::XMLElement* moveElement = objElement->FirstChildElement("move");
+            if (!moveElement) moveElement = objElement->FirstChildElement("moveToMouse"); // backward compatibility
             if (moveElement) {
-                moveToMouse->setThrustForce(moveElement->FloatAttribute("thrustForce", 20.0f));
-                moveToMouse->setMaxSpeed(moveElement->FloatAttribute("maxSpeed", 400.0f));
-                moveToMouse->setArrivalRadius(moveElement->FloatAttribute("arrivalRadius", 5.0f));
+                move->setThrustForce(moveElement->FloatAttribute("thrustForce", 20.0f));
+                move->setMaxSpeed(moveElement->FloatAttribute("maxSpeed", 400.0f));
             }
             
             gameObj->addComponent<CameraFollowComponent>();
@@ -235,8 +259,13 @@ void Engine::handleEvents() {
             running = false;
         }
         if (event.type == SDL_KEYDOWN) {
-            if (event.key.keysym.sym == SDLK_ESCAPE) {
-                running = false;
+            switch (event.key.keysym.sym) {
+                case SDLK_ESCAPE:
+                    running = false;
+                    break;
+                case SDLK_F1:
+                    PhysicsDebugDraw::toggle();
+                    break;
             }
         }
         if (event.type == SDL_MOUSEMOTION) {
@@ -247,7 +276,6 @@ void Engine::handleEvents() {
 }
 
 void Engine::update() {
-    // Step physics simulation
     if (b2World_IsValid(physicsWorldId)) {
         b2World_Step(physicsWorldId, fixedDeltaTime, 4);
     }
@@ -267,6 +295,9 @@ void Engine::render() {
     for (auto& obj : gameObjects) {
         obj->render();
     }
+
+    // Physics debug overlay (draw after normal rendering, before present)
+    PhysicsDebugDraw::render(renderer, gameObjects);
     
     SDL_RenderPresent(renderer);
 }

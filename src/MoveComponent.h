@@ -5,13 +5,14 @@ class TransformComponent;
 class PhysicsBodyComponent;
 
 /**
- * Moves the GameObject toward the mouse position when the left mouse button is held.
- * Uses velocity-based physics movement via Box2D body.
+ * Applies forward thrust to the GameObject when input is active.
+ * Thrust direction is based on the current facing direction (rotation).
+ * Uses force-based physics movement via Box2D body.
  */
-class MoveToMouseComponent : public Component {
+class MoveComponent : public Component {
 public:
-    MoveToMouseComponent() = default;
-    ~MoveToMouseComponent() override = default;
+    MoveComponent() = default;
+    ~MoveComponent() override = default;
 
     void init() override;
     void update(float dt) override;
