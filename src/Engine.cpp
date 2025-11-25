@@ -278,6 +278,28 @@ void Engine::handleEvents() {
 void Engine::update() {
     if (b2World_IsValid(physicsWorldId)) {
         b2World_Step(physicsWorldId, fixedDeltaTime, 4);
+
+        // Read contact events to detect rocket hitting asteroids (static bodies)
+        b2ContactEvents events = b2World_GetContactEvents(physicsWorldId);
+        for (int i = 0; i < events.beginCount; ++i) {
+            const b2ContactBeginTouchEvent& e = events.beginEvents[i];
+            b2BodyId bodyA = b2Shape_GetBody(e.shapeIdA);
+            b2BodyId bodyB = b2Shape_GetBody(e.shapeIdB);
+            auto* objA = static_cast<GameObject*>(b2Body_GetUserData(bodyA));
+            auto* objB = static_cast<GameObject*>(b2Body_GetUserData(bodyB));
+
+            bool aIsRocket = objA && objA->getComponent<PlayerControlComponent>() != nullptr;
+            bool bIsRocket = objB && objB->getComponent<PlayerControlComponent>() != nullptr;
+            auto* physA = objA ? objA->getComponent<PhysicsBodyComponent>() : nullptr;
+            auto* physB = objB ? objB->getComponent<PhysicsBodyComponent>() : nullptr;
+
+            bool otherIsStatic = (aIsRocket && physB && physB->getBodyType() == BodyType::Static) ||
+                                 (bIsRocket && physA && physA->getBodyType() == BodyType::Static);
+
+            if ((aIsRocket || bIsRocket) && otherIsStatic) {
+                std::cout << "Rocket hit asteroid" << std::endl;
+            }
+        }
     }
     
     // Use fixedDeltaTime to ensure movement independent of render FPS
