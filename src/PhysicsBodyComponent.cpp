@@ -58,13 +58,16 @@ void PhysicsBodyComponent::update(float deltaTime) {
         b2ShapeId shapeId;
         if (shapeType == ShapeType::Circle) {
             float radius = std::min(width, height) / 2.0f / PIXELS_PER_METER;
+            // Apply uniform collision scaling (use min to keep circle)
+            float s = collisionScaleX < collisionScaleY ? collisionScaleX : collisionScaleY;
+            if (s > 0.0f) radius *= s;
             b2Circle circle = {{0, 0}, radius};
             shapeId = b2CreateCircleShape(bodyId, &shapeDef, &circle);
         } else {
             const int numVertices = 8; // Box2D polygon vertex limit safety
             b2Vec2 vertices[numVertices];
-            float halfWidth = width / 2.0f / PIXELS_PER_METER;
-            float halfHeight = height / 2.0f / PIXELS_PER_METER;
+            float halfWidth = (width / 2.0f / PIXELS_PER_METER) * (collisionScaleX > 0.0f ? collisionScaleX : 1.0f);
+            float halfHeight = (height / 2.0f / PIXELS_PER_METER) * (collisionScaleY > 0.0f ? collisionScaleY : 1.0f);
             for (int i = 0; i < numVertices; ++i) {
                 float angle = (2.0f * 3.14159f * i) / numVertices;
                 vertices[i].x = halfWidth * std::cos(angle);

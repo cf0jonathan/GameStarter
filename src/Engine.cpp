@@ -169,6 +169,10 @@ void Engine::loadGameObjectsFromXML(const std::string& filepath) {
             physics->setLinearDamping(physicsElement->FloatAttribute("linearDamping", 0.0f));
             physics->setAngularDamping(physicsElement->FloatAttribute("angularDamping", 0.0f));
             physics->setFixedRotation(physicsElement->BoolAttribute("fixedRotation", false));
+
+            // Optional collision scaling to fine tune hitboxes vs textures
+            physics->setCollisionScaleX(physicsElement->FloatAttribute("collisionScaleX", 1.0f));
+            physics->setCollisionScaleY(physicsElement->FloatAttribute("collisionScaleY", 1.0f));
         }
         
         // Add type-specific components

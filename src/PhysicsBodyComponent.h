@@ -33,6 +33,9 @@ public:
     void setLinearDamping(float d) { linearDamping = d; }
     void setAngularDamping(float d) { angularDamping = d; }
     void setFixedRotation(bool fr) { fixedRotation = fr; }
+    void setCollisionScaleX(float sx) { collisionScaleX = sx; }
+    void setCollisionScaleY(float sy) { collisionScaleY = sy; }
+    void setCollisionScale(float sx, float sy) { collisionScaleX = sx; collisionScaleY = sy; }
     
     // Runtime access
     b2BodyId getBodyId() const { return bodyId; }
@@ -57,4 +60,6 @@ private:
     float linearDamping = 0.0f;
     float angularDamping = 0.0f;
     bool fixedRotation = false;
+    float collisionScaleX = 1.0f;
+    float collisionScaleY = 1.0f;
 };
