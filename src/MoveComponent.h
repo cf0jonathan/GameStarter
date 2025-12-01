@@ -28,6 +28,10 @@ private:
     float maxSpeed = 400.0f;        // maximum linear speed in pixels/sec
     float arrivalRadius = 5.0f;     // stop moving when closer than this distance
     bool isMouseButtonDown = false; // track left mouse button state
+    
+    // Debug spawn
+    class GameObject* debugAsteroid = nullptr;
+    bool wasF2Down = false;
 
     TransformComponent* transform = nullptr;
     PhysicsBodyComponent* physicsBody = nullptr;

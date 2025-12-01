@@ -17,6 +17,21 @@ void MoveComponent::update(float dt) {
     // Update mouse button state
     Uint32 mouseState = SDL_GetMouseState(nullptr, nullptr);
     isMouseButtonDown = (mouseState & SDL_BUTTON(SDL_BUTTON_LEFT)) != 0;
+    
+    // Debug: F2 toggles spawn/despawn of an asteroid ~50px to the left of player
+    const Uint8* keyStates = SDL_GetKeyboardState(nullptr);
+    bool isF2Down = keyStates[SDL_SCANCODE_F2];
+    if (isF2Down && !wasF2Down) { // Key just pressed
+        if (debugAsteroid == nullptr) {
+            float ax = transform->getX() - 150.0f;
+            float ay = transform->getY();
+            debugAsteroid = Engine::getInstance().spawnAsteroid(ax, ay, 85.0f);
+        } else {
+            Engine::getInstance().removeGameObject(debugAsteroid);
+            debugAsteroid = nullptr;
+        }
+    }
+    wasF2Down = isF2Down;
 
     b2BodyId bodyId = physicsBody->getBodyId();
 

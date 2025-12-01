@@ -12,3 +12,23 @@ void GameObject::render() {
         component->render();
     }
 }
+
+void GameObject::setTag(const std::string& newTag) {
+    tag = newTag;
+}
+
+const std::string& GameObject::getTag() const {
+    return tag;
+}
+
+bool GameObject::hasTag(const std::string& tagToCheck) const {
+    return tag == tagToCheck;
+}
+
+void GameObject::markForDeletion() {
+    markedForDeletion = true;
+}
+
+bool GameObject::isMarkedForDeletion() const {
+    return markedForDeletion;
+}

@@ -23,7 +23,6 @@ add_executable(demo
     src/GameObject.cpp
     src/InputComponent.cpp
     src/SpriteComponent.cpp
-    src/PlayerControlComponent.cpp
     src/CameraFollowComponent.cpp
     src/RotateToMouseComponent.cpp
     src/MoveComponent.cpp

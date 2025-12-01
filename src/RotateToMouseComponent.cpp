@@ -14,9 +14,10 @@ void RotateToMouseComponent::init() {
 void RotateToMouseComponent::update(float deltaTime) {
     if (!transform) return;
     
-    // Get mouse position in screen space
-    int mouseScreenX = Engine::getMouseX();
-    int mouseScreenY = Engine::getMouseY();
+    // Get mouse position in screen space (refresh directly to avoid latency)
+    int mouseScreenX = 0;
+    int mouseScreenY = 0;
+    SDL_GetMouseState(&mouseScreenX, &mouseScreenY);
     
     // Convert screen to world using View helper
     float mouseWorldX, mouseWorldY;

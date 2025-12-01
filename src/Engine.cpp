@@ -3,7 +3,6 @@
 #include "TransformComponent.h"
 #include "SpriteComponent.h"
 #include "InputComponent.h"
-#include "PlayerControlComponent.h"
 #include "CameraFollowComponent.h"
 #include "RotateToMouseComponent.h"
 #include "MoveComponent.h"
@@ -66,6 +65,91 @@ bool Engine::init(const std::string& title, int width, int height) {
     return true;
 }
 
+GameObject* Engine::spawnBackground(const std::string& texture, float tileW, float tileH, float scrollX, float scrollY) {
+    auto gameObj = std::make_unique<GameObject>();
+    gameObj->setTag("background");
+    
+    auto* background = gameObj->addComponent<BackgroundComponent>();
+    background->setTexture(texture);
+    background->setTileSize(tileW, tileH);
+    background->setScrollSpeed(scrollX, scrollY);
+    
+    GameObject* ptr = gameObj.get();
+    gameObjects.push_back(std::move(gameObj));
+    return ptr;
+}
+
+GameObject* Engine::spawnPlayer(float x, float y, const std::string& texture, float spriteWidth,
+                                float thrustForce, float maxSpeed) {
+    auto gameObj = std::make_unique<GameObject>();
+    gameObj->setTag("player");
+    
+    // Transform
+    auto* transform = gameObj->addComponent<TransformComponent>();
+    transform->setPosition(x, y);
+    
+    // Sprite
+    auto* sprite = gameObj->addComponent<SpriteComponent>();
+    sprite->setTexture(texture);
+    sprite->setSizePreserveAspect(spriteWidth, true);
+    
+    // Physics (hardcoded for player - dynamic ellipse with specific settings)
+    auto* physics = gameObj->addComponent<PhysicsBodyComponent>();
+    physics->setBodyType(BodyType::Dynamic);
+    physics->setShapeType(ShapeType::Ellipse);
+    physics->setLinearDamping(0.8f);
+    physics->setAngularDamping(0.0f);
+    physics->setFixedRotation(false);
+    physics->setDensity(1.0f);
+    
+    // Input & Control
+    gameObj->addComponent<InputComponent>();
+    
+    // Rotation behavior (hardcoded defaults - can be parameterized later if needed)
+    auto* rotateToMouse = gameObj->addComponent<RotateToMouseComponent>();
+    rotateToMouse->setMaxAngularSpeed(360.0f);
+    rotateToMouse->setAcceleration(720.0f);
+    rotateToMouse->setDeceleration(1080.0f);
+    rotateToMouse->setSlowRadius(60.0f);
+    rotateToMouse->setDeadZone(1.0f);
+    rotateToMouse->setEaseExponent(0.6f);
+    
+    // Movement
+    auto* move = gameObj->addComponent<MoveComponent>();
+    move->setThrustForce(thrustForce);
+    move->setMaxSpeed(maxSpeed);
+    
+    // Camera tracking
+    gameObj->addComponent<CameraFollowComponent>();
+    
+    GameObject* ptr = gameObj.get();
+    gameObjects.push_back(std::move(gameObj));
+    return ptr;
+}
+
+GameObject* Engine::spawnAsteroid(float x, float y, float size) {
+    auto gameObj = std::make_unique<GameObject>();
+    gameObj->setTag("asteroid");
+    
+    // Transform
+    auto* transform = gameObj->addComponent<TransformComponent>();
+    transform->setPosition(x, y);
+    
+    // Sprite
+    auto* sprite = gameObj->addComponent<SpriteComponent>();
+    sprite->setTexture("asteroid");
+    sprite->setSizePreserveAspect(size, true);
+    
+    // Physics (static circular obstacle)
+    auto* physics = gameObj->addComponent<PhysicsBodyComponent>();
+    physics->setBodyType(BodyType::Static);
+    physics->setShapeType(ShapeType::Circle);
+    
+    GameObject* ptr = gameObj.get();
+    gameObjects.push_back(std::move(gameObj));
+    return ptr;
+}
+
 void Engine::loadGameObjectsFromXML(const std::string& filepath) {
     tinyxml2::XMLDocument doc;
     if (doc.LoadFile(filepath.c_str()) != tinyxml2::XML_SUCCESS) {
@@ -86,137 +170,56 @@ void Engine::loadGameObjectsFromXML(const std::string& filepath) {
         const char* type = objElement->Attribute("type");
         if (!type) continue;
         
-        auto gameObj = std::make_unique<GameObject>();
+        std::string typeStr(type);
         
-        // Handle background type separately (no transform, no sprite)
-        if (std::string(type) == "background") {
-            auto* background = gameObj->addComponent<BackgroundComponent>();
+        // Spawn background
+        if (typeStr == "background") {
             tinyxml2::XMLElement* bgElement = objElement->FirstChildElement("background");
             if (bgElement) {
                 const char* texture = bgElement->Attribute("texture");
-                if (texture) background->setTexture(texture);
-                
                 float tileWidth = bgElement->FloatAttribute("tileWidth", 800.0f);
                 float tileHeight = bgElement->FloatAttribute("tileHeight", 600.0f);
-                background->setTileSize(tileWidth, tileHeight);
-                
                 float scrollX = bgElement->FloatAttribute("scrollX", 0.0f);
                 float scrollY = bgElement->FloatAttribute("scrollY", 0.0f);
-                background->setScrollSpeed(scrollX, scrollY);
+                
+                spawnBackground(texture ? texture : "", tileWidth, tileHeight, scrollX, scrollY);
             }
-            gameObjects.push_back(std::move(gameObj));
             continue;
         }
         
-        // Add Transform component
-        auto* transform = gameObj->addComponent<TransformComponent>();
+        // Parse common attributes
+        float x = 0.0f, y = 0.0f;
         tinyxml2::XMLElement* posElement = objElement->FirstChildElement("position");
         if (posElement) {
-            float x = posElement->FloatAttribute("x", 0.0f);
-            float y = posElement->FloatAttribute("y", 0.0f);
-            transform->setPosition(x, y);
+            x = posElement->FloatAttribute("x", 0.0f);
+            y = posElement->FloatAttribute("y", 0.0f);
         }
         
-        // Add Sprite component
-        auto* sprite = gameObj->addComponent<SpriteComponent>();
+        float spriteWidth = 50.0f;
         tinyxml2::XMLElement* spriteElement = objElement->FirstChildElement("sprite");
-        if (spriteElement) {
-            const char* texture = spriteElement->Attribute("texture");
-            if (texture) sprite->setTexture(texture);
-            
-            // Support either explicit width+height or single dimension with aspect preservation
-            bool hasWidth = spriteElement->Attribute("width") != nullptr;
-            bool hasHeight = spriteElement->Attribute("height") != nullptr;
-            
-            if (hasWidth && hasHeight) {
-                // Both specified: use explicit dimensions
-                float width = spriteElement->FloatAttribute("width");
-                float height = spriteElement->FloatAttribute("height");
-                sprite->setSize(width, height);
-            } else if (hasWidth) {
-                // Only width: preserve aspect ratio from width
-                float width = spriteElement->FloatAttribute("width");
-                sprite->setSizePreserveAspect(width, true);
-            } else if (hasHeight) {
-                // Only height: preserve aspect ratio from height
-                float height = spriteElement->FloatAttribute("height");
-                sprite->setSizePreserveAspect(height, false);
-            } else {
-                // Neither specified: use default 50x50
-                sprite->setSize(50.0f, 50.0f);
-            }
+        if (spriteElement && spriteElement->Attribute("width")) {
+            spriteWidth = spriteElement->FloatAttribute("width");
         }
         
-        // Add Physics component if present
-        tinyxml2::XMLElement* physicsElement = objElement->FirstChildElement("physics");
-        if (physicsElement) {
-            auto* physics = gameObj->addComponent<PhysicsBodyComponent>();
+        // Spawn player
+        if (typeStr == "player") {
+            tinyxml2::XMLElement* spriteElem = objElement->FirstChildElement("sprite");
+            const char* texture = spriteElem ? spriteElem->Attribute("texture") : "rocket";
             
-            const char* typeStr = physicsElement->Attribute("type");
-            if (typeStr) {
-                if (std::string(typeStr) == "static") physics->setBodyType(BodyType::Static);
-                else if (std::string(typeStr) == "kinematic") physics->setBodyType(BodyType::Kinematic);
-                else physics->setBodyType(BodyType::Dynamic);
-            }
-            
-            const char* shapeStr = physicsElement->Attribute("shape");
-            if (shapeStr) {
-                if (std::string(shapeStr) == "ellipse") physics->setShapeType(ShapeType::Ellipse);
-                else physics->setShapeType(ShapeType::Circle);
-            }
-            
-            physics->setDensity(physicsElement->FloatAttribute("density", 1.0f));
-            physics->setLinearDamping(physicsElement->FloatAttribute("linearDamping", 0.0f));
-            physics->setAngularDamping(physicsElement->FloatAttribute("angularDamping", 0.0f));
-            physics->setFixedRotation(physicsElement->BoolAttribute("fixedRotation", false));
-
-            // Optional collision scaling to fine tune hitboxes vs textures
-            physics->setCollisionScaleX(physicsElement->FloatAttribute("collisionScaleX", 1.0f));
-            physics->setCollisionScaleY(physicsElement->FloatAttribute("collisionScaleY", 1.0f));
-        }
-        
-        // Add type-specific components
-        if (std::string(type) == "player") {
-            gameObj->addComponent<InputComponent>();
-            gameObj->addComponent<PlayerControlComponent>();
-            
-            // Add RotateToMouseComponent with configurable angular velocity model
-            auto* rotateToMouse = gameObj->addComponent<RotateToMouseComponent>();
-            tinyxml2::XMLElement* rotateElement = objElement->FirstChildElement("rotateToMouse");
-            if (rotateElement) {
-                // Backward compatibility: rotationSpeed only
-                if (rotateElement->Attribute("rotationSpeed") &&
-                    !rotateElement->Attribute("rotationMaxSpeed")) {
-                    float base = rotateElement->FloatAttribute("rotationSpeed", 180.0f);
-                    rotateToMouse->setMaxAngularSpeed(base);
-                    rotateToMouse->setAcceleration(base * 2.0f);
-                    rotateToMouse->setDeceleration(base * 3.0f); // stronger braking
-                    rotateToMouse->setSlowRadius(60.0f);
-                    rotateToMouse->setDeadZone(1.0f);
-                    rotateToMouse->setEaseExponent(0.6f);
-                } else {
-                    rotateToMouse->setMaxAngularSpeed(rotateElement->FloatAttribute("rotationMaxSpeed", 360.0f));
-                    rotateToMouse->setAcceleration(rotateElement->FloatAttribute("rotationAccel", 720.0f));
-                    rotateToMouse->setDeceleration(rotateElement->FloatAttribute("rotationDecel", 1080.0f));
-                    rotateToMouse->setSlowRadius(rotateElement->FloatAttribute("rotationSlowRadius", 60.0f));
-                    rotateToMouse->setDeadZone(rotateElement->FloatAttribute("rotationDeadZone", 1.0f));
-                    rotateToMouse->setEaseExponent(rotateElement->FloatAttribute("rotationEaseExponent", 0.6f));
-                }
-            }
-            
-            // Add MoveComponent with configurable thrust (supports both <move> and <moveToMouse> for backward compat)
-            auto* move = gameObj->addComponent<MoveComponent>();
             tinyxml2::XMLElement* moveElement = objElement->FirstChildElement("move");
-            if (!moveElement) moveElement = objElement->FirstChildElement("moveToMouse"); // backward compatibility
-            if (moveElement) {
-                move->setThrustForce(moveElement->FloatAttribute("thrustForce", 20.0f));
-                move->setMaxSpeed(moveElement->FloatAttribute("maxSpeed", 400.0f));
-            }
+            if (!moveElement) moveElement = objElement->FirstChildElement("moveToMouse");
+            float thrustForce = moveElement ? moveElement->FloatAttribute("thrustForce", 250.0f) : 250.0f;
+            float maxSpeed = moveElement ? moveElement->FloatAttribute("maxSpeed", 450.0f) : 450.0f;
             
-            gameObj->addComponent<CameraFollowComponent>();
+            spawnPlayer(x, y, texture ? texture : "rocket", spriteWidth, thrustForce, maxSpeed);
+            continue;
         }
         
-        gameObjects.push_back(std::move(gameObj));
+        // Spawn asteroid
+        if (typeStr == "asteroid") {
+            spawnAsteroid(x, y, spriteWidth);
+            continue;
+        }
     }
     
     std::cout << "Loaded " << gameObjects.size() << " game objects from XML" << std::endl;
@@ -280,6 +283,13 @@ void Engine::handleEvents() {
 }
 
 void Engine::update() {
+    // Refresh mouse position each fixed update to avoid relying solely on motion events
+    {
+        int mx = 0, my = 0;
+        SDL_GetMouseState(&mx, &my);
+        mouseX = mx;
+        mouseY = my;
+    }
     if (b2World_IsValid(physicsWorldId)) {
         b2World_Step(physicsWorldId, fixedDeltaTime, 4);
 
@@ -292,15 +302,12 @@ void Engine::update() {
             auto* objA = static_cast<GameObject*>(b2Body_GetUserData(bodyA));
             auto* objB = static_cast<GameObject*>(b2Body_GetUserData(bodyB));
 
-            bool aIsRocket = objA && objA->getComponent<PlayerControlComponent>() != nullptr;
-            bool bIsRocket = objB && objB->getComponent<PlayerControlComponent>() != nullptr;
-            auto* physA = objA ? objA->getComponent<PhysicsBodyComponent>() : nullptr;
-            auto* physB = objB ? objB->getComponent<PhysicsBodyComponent>() : nullptr;
+            bool aIsPlayer = objA && objA->hasTag("player");
+            bool bIsPlayer = objB && objB->hasTag("player");
+            bool aIsAsteroid = objA && objA->hasTag("asteroid");
+            bool bIsAsteroid = objB && objB->hasTag("asteroid");
 
-            bool otherIsStatic = (aIsRocket && physB && physB->getBodyType() == BodyType::Static) ||
-                                 (bIsRocket && physA && physA->getBodyType() == BodyType::Static);
-
-            if ((aIsRocket || bIsRocket) && otherIsStatic) {
+            if ((aIsPlayer && bIsAsteroid) || (bIsPlayer && aIsAsteroid)) {
                 std::cout << "Rocket hit asteroid" << std::endl;
             }
         }
@@ -310,6 +317,9 @@ void Engine::update() {
     for (auto& obj : gameObjects) {
         obj->update(fixedDeltaTime);
     }
+    
+    // Clean up any objects marked for deletion
+    cleanupMarkedObjects();
 }
 
 void Engine::render() {
@@ -359,4 +369,41 @@ void Engine::setLogicFPS(int fps) {
     if (fps <= 0) return;
     logicFPS = fps;
     fixedDeltaTime = 1.0f / static_cast<float>(logicFPS);
+}
+
+void Engine::removeGameObject(GameObject* obj) {
+    if (obj) {
+        obj->markForDeletion();
+    }
+}
+
+void Engine::cleanupMarkedObjects() {
+    // Safe erasure pattern: iterate with manual index control
+    for (size_t i = 0; i < gameObjects.size(); ) {
+        if (gameObjects[i]->isMarkedForDeletion()) {
+            // Erase triggers GameObject destructor -> component destructors -> PhysicsBodyComponent cleanup
+            gameObjects.erase(gameObjects.begin() + i);
+            // Don't increment i since we removed an element
+        } else {
+            ++i;
+        }
+    }
+}
+
+void Engine::updateAsteroidSpawning() {
+    // TODO: Implement procedural asteroid spawning based on camera/player position
+    // Example logic:
+    // - Get player X position
+    // - Check if we need to spawn ahead (player X + screen width + buffer)
+    // - Randomize Y position, size, spacing based on difficulty
+    // - Call spawnAsteroid(x, y, size)
+}
+
+void Engine::cleanupOffscreenAsteroids() {
+    // TODO: Implement offscreen asteroid cleanup
+    // Example logic:
+    // - Get player X position
+    // - Iterate through gameObjects with tag "asteroid"
+    // - Check if asteroid X < player X - screen width - buffer
+    // - Mark for deletion via removeGameObject()
 }

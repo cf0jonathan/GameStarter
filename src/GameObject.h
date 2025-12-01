@@ -3,6 +3,7 @@
 #include <memory>
 #include <typeindex>
 #include <unordered_map>
+#include <string>
 
 class Component;
 
@@ -34,7 +35,18 @@ public:
         return nullptr;
     }
     
+    // Tagging system
+    void setTag(const std::string& newTag);
+    const std::string& getTag() const;
+    bool hasTag(const std::string& tagToCheck) const;
+    
+    // Deletion management
+    void markForDeletion();
+    bool isMarkedForDeletion() const;
+    
 private:
     std::vector<std::unique_ptr<Component>> components;
     std::unordered_map<std::type_index, Component*> componentMap;
+    std::string tag;
+    bool markedForDeletion = false;
 };

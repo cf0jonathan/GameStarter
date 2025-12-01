@@ -2,7 +2,7 @@
 <assets>
     <settings>
         <display width="1440" height="720" />
-        <timing renderFPS="360" logicFPS="360" />
+        <timing renderFPS="120" logicFPS="360" />
     </settings>
     <textures>
         <texture id="rocket" path="assets/rocket.png" />
@@ -21,7 +21,7 @@
             <sprite texture="rocket" width="120" />
             <physics type="dynamic" shape="ellipse" linearDamping="0.8" angularDamping="0.0" fixedRotation="false" density="1.0" />
             <rotateToMouse rotationMaxSpeed="360" rotationAccel="720" rotationDecel="1080" rotationSlowRadius="60" rotationDeadZone="1" rotationEaseExponent="0.6" />
-            <move thrustForce="250.0" maxSpeed="450.0" />
+            <move thrustForce="2500.0" maxSpeed="4500.0" />
         </object>
         
         <!-- Asteroid field -->

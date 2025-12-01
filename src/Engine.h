@@ -41,6 +41,20 @@ public:
     // Asset loading
     void loadGameObjectsFromXML(const std::string& filepath);
     
+    // Programmatic object spawning
+    GameObject* spawnBackground(const std::string& texture, float tileW, float tileH, float scrollX, float scrollY);
+    GameObject* spawnPlayer(float x, float y, const std::string& texture, float spriteWidth,
+                           float thrustForce, float maxSpeed);
+    GameObject* spawnAsteroid(float x, float y, float size);
+    
+    // Object lifecycle management
+    void removeGameObject(GameObject* obj);
+    void cleanupMarkedObjects();
+    
+    // Procedural generation (stubs for future use)
+    void updateAsteroidSpawning();
+    void cleanupOffscreenAsteroids();
+    
 private:
     Engine() = default;
     ~Engine() = default;
