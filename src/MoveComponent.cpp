@@ -2,6 +2,7 @@
 #include "GameObject.h"
 #include "TransformComponent.h"
 #include "PhysicsBodyComponent.h"
+#include "InputComponent.h"
 #include "Engine.h"
 #include <SDL2/SDL.h>
 #include <cmath>
@@ -9,14 +10,11 @@
 void MoveComponent::init() {
     transform = owner->getComponent<TransformComponent>();
     physicsBody = owner->getComponent<PhysicsBodyComponent>();
+    input = owner->getComponent<InputComponent>();
 }
 
 void MoveComponent::update(float dt) {
     if (!transform || !physicsBody || !physicsBody->isInitialized()) return;
-
-    // Update mouse button state
-    Uint32 mouseState = SDL_GetMouseState(nullptr, nullptr);
-    isMouseButtonDown = (mouseState & SDL_BUTTON(SDL_BUTTON_LEFT)) != 0;
     
     // Debug: F2 toggles spawn/despawn of an asteroid ~50px to the left of player
     const Uint8* keyStates = SDL_GetKeyboardState(nullptr);
@@ -36,7 +34,7 @@ void MoveComponent::update(float dt) {
     b2BodyId bodyId = physicsBody->getBodyId();
 
     // If not holding button, let damping handle slowdown
-    if (!isMouseButtonDown) {
+    if (!input || !input->isLeftMouseDown()) {
         return;
     }
 

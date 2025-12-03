@@ -10,6 +10,8 @@
 #include "PhysicsBodyComponent.h"
 #include "View.h"
 #include "PhysicsDebugDraw.h"
+#include "ParticleSystem.h"
+#include "ParticleEmitterComponent.h"
 #include <tinyxml2.h>
 #include <iostream>
 
@@ -122,6 +124,23 @@ GameObject* Engine::spawnPlayer(float x, float y, const std::string& texture, fl
     // Camera tracking
     gameObj->addComponent<CameraFollowComponent>();
     
+    // Particle emitter (engine trail)
+    auto* emitter = gameObj->addComponent<ParticleEmitterComponent>();
+    emitter->setEmitterType(EmitterType::Continuous);
+    emitter->setSpawnRate(50.0f);
+    emitter->setLifetime(0.5f);
+    emitter->setSpeedMin(50.0f);
+    emitter->setSpeedMax(150.0f);
+    emitter->setSize(3.0f);
+    emitter->setSpreadAngle(30.0f);
+    emitter->setDirectionOffset(180.0f);  // Behind the rocket
+    emitter->setPositionOffset(-30.0f, 0.0f);  // Offset to rear
+    emitter->setRequireMouseButton(true);  // Only emit when thrusting
+    SDL_Color trailStart = {255, 128, 0, 255};  // orange
+    SDL_Color trailEnd = {255, 0, 0, 0};        // red fading out
+    emitter->setStartColor(trailStart);
+    emitter->setEndColor(trailEnd);
+    
     GameObject* ptr = gameObj.get();
     gameObjects.push_back(std::move(gameObj));
     return ptr;
@@ -211,7 +230,73 @@ void Engine::loadGameObjectsFromXML(const std::string& filepath) {
             float thrustForce = moveElement ? moveElement->FloatAttribute("thrustForce", 250.0f) : 250.0f;
             float maxSpeed = moveElement ? moveElement->FloatAttribute("maxSpeed", 450.0f) : 450.0f;
             
-            spawnPlayer(x, y, texture ? texture : "rocket", spriteWidth, thrustForce, maxSpeed);
+            GameObject* player = spawnPlayer(x, y, texture ? texture : "rocket", spriteWidth, thrustForce, maxSpeed);
+            
+            // Parse particle emitter (if present)
+            tinyxml2::XMLElement* particleElem = objElement->FirstChildElement("particleEmitter");
+            if (particleElem && player) {
+                auto* emitter = player->getComponent<ParticleEmitterComponent>();
+                if (emitter) {
+                    const char* typeAttr = particleElem->Attribute("type");
+                    if (typeAttr && std::string(typeAttr) == "burst") {
+                        emitter->setEmitterType(EmitterType::Burst);
+                    }
+                    
+                    if (particleElem->Attribute("spawnRate")) {
+                        emitter->setSpawnRate(particleElem->FloatAttribute("spawnRate"));
+                    }
+                    if (particleElem->Attribute("lifetime")) {
+                        emitter->setLifetime(particleElem->FloatAttribute("lifetime"));
+                    }
+                    if (particleElem->Attribute("speedMin")) {
+                        emitter->setSpeedMin(particleElem->FloatAttribute("speedMin"));
+                    }
+                    if (particleElem->Attribute("speedMax")) {
+                        emitter->setSpeedMax(particleElem->FloatAttribute("speedMax"));
+                    }
+                    if (particleElem->Attribute("size")) {
+                        emitter->setSize(particleElem->FloatAttribute("size"));
+                    }
+                    if (particleElem->Attribute("spreadAngle")) {
+                        emitter->setSpreadAngle(particleElem->FloatAttribute("spreadAngle"));
+                    }
+                    if (particleElem->Attribute("directionOffset")) {
+                        emitter->setDirectionOffset(particleElem->FloatAttribute("directionOffset"));
+                    }
+                    if (particleElem->Attribute("offsetX") && particleElem->Attribute("offsetY")) {
+                        emitter->setPositionOffset(
+                            particleElem->FloatAttribute("offsetX"),
+                            particleElem->FloatAttribute("offsetY")
+                        );
+                    }
+                    if (particleElem->Attribute("requireMouseButton")) {
+                        emitter->setRequireMouseButton(particleElem->BoolAttribute("requireMouseButton", false));
+                    }
+                    if (particleElem->Attribute("burstCount")) {
+                        emitter->setBurstCount(particleElem->IntAttribute("burstCount"));
+                    }
+                    if (particleElem->Attribute("burstDuration")) {
+                        emitter->setBurstDuration(particleElem->FloatAttribute("burstDuration"));
+                    }
+                    
+                    // Parse colors (format: "r,g,b,a")
+                    const char* startColorStr = particleElem->Attribute("startColor");
+                    if (startColorStr) {
+                        int r, g, b, a;
+                        if (sscanf(startColorStr, "%d,%d,%d,%d", &r, &g, &b, &a) == 4) {
+                            emitter->setStartColor({(Uint8)r, (Uint8)g, (Uint8)b, (Uint8)a});
+                        }
+                    }
+                    const char* endColorStr = particleElem->Attribute("endColor");
+                    if (endColorStr) {
+                        int r, g, b, a;
+                        if (sscanf(endColorStr, "%d,%d,%d,%d", &r, &g, &b, &a) == 4) {
+                            emitter->setEndColor({(Uint8)r, (Uint8)g, (Uint8)b, (Uint8)a});
+                        }
+                    }
+                }
+            }
+            
             continue;
         }
         
@@ -309,6 +394,37 @@ void Engine::update() {
 
             if ((aIsPlayer && bIsAsteroid) || (bIsPlayer && aIsAsteroid)) {
                 std::cout << "Rocket hit asteroid" << std::endl;
+                
+                // Trigger player's emitter burst for natural explosion
+                GameObject* playerObj = aIsPlayer ? objA : objB;
+                if (playerObj) {
+                    auto* emitter = playerObj->getComponent<ParticleEmitterComponent>();
+                    if (emitter) {
+                        // Preserve current trail configuration
+                        EmitterType prevType = EmitterType::Continuous; // default
+                        // Note: we don't have getters; assume trail defaults used at spawn.
+                        // To avoid corrupting trail, only override burst-specific values temporarily.
+
+                        // Configure burst without altering trail-critical settings (direction/offset/spawnRate)
+                        prevType = EmitterType::Continuous;
+                        emitter->setEmitterType(EmitterType::Burst);
+                        emitter->setBurstCount(60);
+                        emitter->setBurstDuration(0.18f);
+                        emitter->setLifetime(0.9f);
+                        emitter->setSize(4.0f);
+                        emitter->setSpeedMin(100.0f);
+                        emitter->setSpeedMax(300.0f);
+                        // Use full spread but keep existing direction/offset as-is
+                        // emitter->setDirectionOffset(0.0f);
+                        // emitter->setPositionOffset(0.0f, 0.0f);
+                        emitter->setSpreadAngle(360.0f);
+
+                        emitter->triggerBurst();
+
+                        // Restore emitter to continuous mode to keep rocket trail working
+                        emitter->setEmitterType(prevType);
+                    }
+                }
             }
         }
     }
@@ -317,6 +433,10 @@ void Engine::update() {
     for (auto& obj : gameObjects) {
         obj->update(fixedDeltaTime);
     }
+    
+    // Update particle system
+    ParticleSystem::getInstance().update(fixedDeltaTime);
+    ParticleSystem::getInstance().update(fixedDeltaTime);
     
     // Clean up any objects marked for deletion
     cleanupMarkedObjects();
@@ -331,6 +451,9 @@ void Engine::render() {
     for (auto& obj : gameObjects) {
         obj->render();
     }
+    
+    // Render particles (after sprites, before debug overlay)
+    ParticleSystem::getInstance().render(renderer, &View::getInstance());
 
     // Physics debug overlay (draw after normal rendering, before present)
     PhysicsDebugDraw::render(renderer, gameObjects);
@@ -343,6 +466,9 @@ void Engine::quit() {
 }
 
 void Engine::clean() {
+    // Clear particle system
+    ParticleSystem::getInstance().clear();
+    
     // Destroy physics world
     if (b2World_IsValid(physicsWorldId)) {
         b2DestroyWorld(physicsWorldId);

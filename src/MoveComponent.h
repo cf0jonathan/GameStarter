@@ -27,7 +27,6 @@ private:
     float thrustForce = 20.0f;      // force applied toward mouse (pixels * mass per second equivalent)
     float maxSpeed = 400.0f;        // maximum linear speed in pixels/sec
     float arrivalRadius = 5.0f;     // stop moving when closer than this distance
-    bool isMouseButtonDown = false; // track left mouse button state
     
     // Debug spawn
     class GameObject* debugAsteroid = nullptr;
@@ -35,4 +34,5 @@ private:
 
     TransformComponent* transform = nullptr;
     PhysicsBodyComponent* physicsBody = nullptr;
+    class InputComponent* input = nullptr;
 };

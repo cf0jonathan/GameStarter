@@ -18,7 +18,20 @@ public:
     bool isSPressed() const { return isKeyDown(SDL_SCANCODE_S); }
     bool isDPressed() const { return isKeyDown(SDL_SCANCODE_D); }
     
+    // Mouse button state
+    bool isMouseButtonPressed(int button) const;  // Just pressed this frame
+    bool isMouseButtonDown(int button) const;     // Currently held
+    bool isMouseButtonUp(int button) const;       // Currently not pressed
+    
+    // Convenience methods
+    bool isLeftMouseDown() const { return isMouseButtonDown(SDL_BUTTON_LEFT); }
+    bool isLeftMousePressed() const { return isMouseButtonPressed(SDL_BUTTON_LEFT); }
+    bool isRightMouseDown() const { return isMouseButtonDown(SDL_BUTTON_RIGHT); }
+    
 private:
     const Uint8* currentKeyStates = nullptr;
     Uint8 previousKeyStates[SDL_NUM_SCANCODES] = {0};
+    
+    Uint32 currentMouseState = 0;
+    Uint32 previousMouseState = 0;
 };

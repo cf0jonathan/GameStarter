@@ -7,10 +7,11 @@ void InputComponent::update(float deltaTime) {
     if (currentKeyStates) {
         std::memcpy(previousKeyStates, currentKeyStates, SDL_NUM_SCANCODES);
     }
+    previousMouseState = currentMouseState;
     
     // Get current state
     currentKeyStates = SDL_GetKeyboardState(nullptr);
-    
+    currentMouseState = SDL_GetMouseState(nullptr, nullptr);
 }
 
 bool InputComponent::isKeyPressed(SDL_Scancode key) const {
@@ -26,4 +27,20 @@ bool InputComponent::isKeyDown(SDL_Scancode key) const {
 bool InputComponent::isKeyUp(SDL_Scancode key) const {
     // Currently not pressed
     return currentKeyStates && !currentKeyStates[key];
+}
+
+bool InputComponent::isMouseButtonPressed(int button) const {
+    // Just pressed this frame (was up, now down)
+    Uint32 buttonMask = SDL_BUTTON(button);
+    return (currentMouseState & buttonMask) && !(previousMouseState & buttonMask);
+}
+
+bool InputComponent::isMouseButtonDown(int button) const {
+    // Currently held down
+    return (currentMouseState & SDL_BUTTON(button)) != 0;
+}
+
+bool InputComponent::isMouseButtonUp(int button) const {
+    // Currently not pressed
+    return (currentMouseState & SDL_BUTTON(button)) == 0;
 }

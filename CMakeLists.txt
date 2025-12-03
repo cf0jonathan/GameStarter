@@ -30,6 +30,8 @@ add_executable(demo
     src/Settings.cpp
     src/PhysicsBodyComponent.cpp
     src/PhysicsDebugDraw.cpp
+    src/ParticleSystem.cpp
+    src/ParticleEmitterComponent.cpp
 )
 
 # Link libraries

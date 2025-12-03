@@ -22,6 +22,10 @@
             <physics type="dynamic" shape="ellipse" linearDamping="0.8" angularDamping="0.0" fixedRotation="false" density="1.0" />
             <rotateToMouse rotationMaxSpeed="360" rotationAccel="720" rotationDecel="1080" rotationSlowRadius="60" rotationDeadZone="1" rotationEaseExponent="0.6" />
             <move thrustForce="2500.0" maxSpeed="4500.0" />
+            <particleEmitter type="continuous" spawnRate="500" lifetime="1" speedMin="50" speedMax="150" 
+                           size="3" spreadAngle="180" directionOffset="180" offsetX="-60" offsetY="0"
+                           requireMouseButton="true" burstCount="60" burstDuration="0.18"
+                           startColor="255,128,0,255" endColor="255,0,0,0" />
         </object>
         
         <!-- Asteroid field -->
