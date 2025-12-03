@@ -10,16 +10,21 @@ Integrate Box2D with the SDL game engine so that physics bodies can be created, 
 Use b2Body's userData field to store a pointer to the associated GameObject in SDL, allowing the retrieval of objects during physics events (e.g., contacts, queries, and raytracing).
 Dynamic Forces and Velocities:
 Implement functionality to apply force, set linear velocity, and/or angular velocity to Box2D bodies.
+
 Demonstrate these functionalities in a way that is interactive or easily testable within the demo (e.g., via keypresses or timed events).
+
 Physics Queries: Implement at least one of the following in the demo:
 Raycasting: Show raycasting in action, tracing rays through the scene and detecting intersections with Box2D bodies.
 AABB Querying: Implement AABB (Axis-Aligned Bounding Box) querying to detect bodies within a specified area.
 Contact Listening: Use Box2D’s contact listener to detect and respond to collisions between bodies.
+
 Adding and Removing Bodies:
 Allow for the addition and removal of Box2D bodies at runtime. This can be done interactively (e.g., pressing keys to spawn or delete objects) or programmatically in the demo.
+
 Ensure that the demo can handle both static and dynamic bodies:
 Static Bodies: Objects that do not move but can interact with dynamic bodies (e.g., walls or ground).
 Dynamic Bodies: Objects affected by forces, velocities, and collisions.
+
 Demo Application:
 Create a demo showcasing the integrated Box2D functionality within the SDL game engine.
 The demo should include both static and dynamic objects, with clear examples of body interactions, query responses, and real-time object manipulation.
