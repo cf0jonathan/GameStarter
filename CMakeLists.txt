@@ -30,8 +30,13 @@ add_executable(demo
     src/Settings.cpp
     src/PhysicsBodyComponent.cpp
     src/PhysicsDebugDraw.cpp
+    src/LifetimeComponent.cpp
     src/ParticleSystem.cpp
     src/ParticleEmitterComponent.cpp
+    src/AsteroidSpawner.cpp
+    src/TextComponent.cpp
+    src/ScoreDisplay.cpp
+    src/GameOverScreen.cpp
 )
 
 # Link libraries

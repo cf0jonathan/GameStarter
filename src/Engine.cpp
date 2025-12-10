@@ -12,8 +12,15 @@
 #include "PhysicsDebugDraw.h"
 #include "ParticleSystem.h"
 #include "ParticleEmitterComponent.h"
+#include "LifetimeComponent.h"
+#include "AsteroidSpawner.h"
 #include <tinyxml2.h>
 #include <iostream>
+#include <cmath>
+#include <SDL2/SDL_mixer.h>
+#include "ScoreDisplay.h"
+#include "GameOverScreen.h"
+#include "AssetManager.h"
 
 int Engine::targetFPS = 60;
 float Engine::deltaTime = 0.0f;
@@ -54,6 +61,34 @@ bool Engine::init(const std::string& title, int width, int height) {
         std::cerr << "Renderer could not be created! SDL_Error: " << SDL_GetError() << std::endl;
         return false;
     }
+
+    // Initialize SDL_ttf
+    if (TTF_Init() == -1) {
+        std::cerr << "SDL_ttf could not initialize! TTF_Error: " << TTF_GetError() << std::endl;
+        return false;
+    }
+    
+    // Initialize SDL_mixer with MP3 support
+    int flags = MIX_INIT_MP3;
+    if ((Mix_Init(flags) & flags) != flags) {
+        std::cerr << "SDL_mixer could not initialize MP3 support! SDL_mixer Error: " << Mix_GetError() << std::endl;
+        // Continue anyway, maybe WAV will work
+    }
+    
+    if (Mix_OpenAudio(44100, MIX_DEFAULT_FORMAT, 2, 2048) < 0) {
+        std::cerr << "SDL_mixer could not initialize! SDL_mixer Error: " << Mix_GetError() << std::endl;
+        return false;
+    }
+
+    // Create score display (use a default font path, e.g., assets/arial.ttf)
+    scoreDisplay = new ScoreDisplay(renderer, "assets/arial.ttf", 24);
+    
+    // Create game over screen
+    gameOverScreen = new GameOverScreen(renderer, "assets/arial.ttf", 48, width, height);
+    
+    // Load high score from XML
+    AssetManager::getInstance().loadHighScoreFromXML("assets/config.xml");
+    gameOverScreen->setHighScore(AssetManager::getInstance().getHighScore());
     
     // Create physics world with zero gravity (space environment)
     b2WorldDef worldDef = b2DefaultWorldDef();
@@ -141,32 +176,31 @@ GameObject* Engine::spawnPlayer(float x, float y, const std::string& texture, fl
     emitter->setStartColor(trailStart);
     emitter->setEndColor(trailEnd);
     
+    // Asteroid spawner (manages procedural asteroid generation via spawn queue)
+    auto* spawner = gameObj->addComponent<AsteroidSpawner>();
+    spawner->setSpawnBuffer(500.0f);      // spawn 500px beyond screen edge
+    spawner->setCleanupDistance(1500.0f); // despawn 1500px from player
+    spawner->setSpawnDensity(0.25f);      // 0.25 asteroids per direction (1 per 4 spawn triggers)
+    
     GameObject* ptr = gameObj.get();
     gameObjects.push_back(std::move(gameObj));
+    
+    // Store player reference and spawn position for score tracking
+    player = ptr;
+    auto* playerTransform = player->getComponent<TransformComponent>();
+    if (playerTransform) {
+        playerSpawnX = playerTransform->getX();
+        playerSpawnY = playerTransform->getY();
+    }
+    
     return ptr;
 }
 
 GameObject* Engine::spawnAsteroid(float x, float y, float size) {
-    auto gameObj = std::make_unique<GameObject>();
-    gameObj->setTag("asteroid");
-    
-    // Transform
-    auto* transform = gameObj->addComponent<TransformComponent>();
-    transform->setPosition(x, y);
-    
-    // Sprite
-    auto* sprite = gameObj->addComponent<SpriteComponent>();
-    sprite->setTexture("asteroid");
-    sprite->setSizePreserveAspect(size, true);
-    
-    // Physics (static circular obstacle)
-    auto* physics = gameObj->addComponent<PhysicsBodyComponent>();
-    physics->setBodyType(BodyType::Static);
-    physics->setShapeType(ShapeType::Circle);
-    
-    GameObject* ptr = gameObj.get();
-    gameObjects.push_back(std::move(gameObj));
-    return ptr;
+    // Queue the asteroid for spawning after the update loop completes
+    // This prevents vector reallocation crashes during component updates
+    pendingAsteroids.push_back({x, y, size});
+    return nullptr;  // Placeholder - actual object will exist after processPendingAsteroids()
 }
 
 void Engine::loadGameObjectsFromXML(const std::string& filepath) {
@@ -232,10 +266,21 @@ void Engine::loadGameObjectsFromXML(const std::string& filepath) {
             
             GameObject* player = spawnPlayer(x, y, texture ? texture : "rocket", spriteWidth, thrustForce, maxSpeed);
             
+            // Find player by tag (safer than holding pointer across potential reallocations)
+            GameObject* playerPtr = nullptr;
+            for (auto& obj : gameObjects) {
+                if (obj && obj->hasTag("player")) {
+                    playerPtr = obj.get();
+                    break;
+                }
+            }
+            
+            if (!playerPtr) continue;
+            
             // Parse particle emitter (if present)
             tinyxml2::XMLElement* particleElem = objElement->FirstChildElement("particleEmitter");
-            if (particleElem && player) {
-                auto* emitter = player->getComponent<ParticleEmitterComponent>();
+            if (particleElem) {
+                auto* emitter = playerPtr->getComponent<ParticleEmitterComponent>();
                 if (emitter) {
                     const char* typeAttr = particleElem->Attribute("type");
                     if (typeAttr && std::string(typeAttr) == "burst") {
@@ -293,6 +338,55 @@ void Engine::loadGameObjectsFromXML(const std::string& filepath) {
                         if (sscanf(endColorStr, "%d,%d,%d,%d", &r, &g, &b, &a) == 4) {
                             emitter->setEndColor({(Uint8)r, (Uint8)g, (Uint8)b, (Uint8)a});
                         }
+                    }
+                }
+            }
+
+            // Parse explosion emitter settings (optional) for collision effects
+            tinyxml2::XMLElement* explosionElem = objElement->FirstChildElement("explosionEmitter");
+            if (explosionElem) {
+                if (explosionElem->Attribute("burstCount")) {
+                    explosionConfig.burstCount = explosionElem->IntAttribute("burstCount", explosionConfig.burstCount);
+                }
+                if (explosionElem->Attribute("burstDuration")) {
+                    explosionConfig.burstDuration = explosionElem->FloatAttribute("burstDuration", explosionConfig.burstDuration);
+                }
+                if (explosionElem->Attribute("lifetime")) {
+                    explosionConfig.lifetime = explosionElem->FloatAttribute("lifetime", explosionConfig.lifetime);
+                }
+                if (explosionElem->Attribute("size")) {
+                    explosionConfig.size = explosionElem->FloatAttribute("size", explosionConfig.size);
+                }
+                if (explosionElem->Attribute("speedMin")) {
+                    explosionConfig.speedMin = explosionElem->FloatAttribute("speedMin", explosionConfig.speedMin);
+                }
+                if (explosionElem->Attribute("speedMax")) {
+                    explosionConfig.speedMax = explosionElem->FloatAttribute("speedMax", explosionConfig.speedMax);
+                }
+                if (explosionElem->Attribute("spreadAngle")) {
+                    explosionConfig.spreadAngle = explosionElem->FloatAttribute("spreadAngle", explosionConfig.spreadAngle);
+                }
+                if (explosionElem->Attribute("directionOffset")) {
+                    explosionConfig.directionOffset = explosionElem->FloatAttribute("directionOffset", explosionConfig.directionOffset);
+                }
+                if (explosionElem->Attribute("offsetX")) {
+                    explosionConfig.offsetX = explosionElem->FloatAttribute("offsetX", explosionConfig.offsetX);
+                }
+                if (explosionElem->Attribute("offsetY")) {
+                    explosionConfig.offsetY = explosionElem->FloatAttribute("offsetY", explosionConfig.offsetY);
+                }
+                const char* expStartColor = explosionElem->Attribute("startColor");
+                if (expStartColor) {
+                    int r, g, b, a;
+                    if (sscanf(expStartColor, "%d,%d,%d,%d", &r, &g, &b, &a) == 4) {
+                        explosionConfig.startColor = {(Uint8)r, (Uint8)g, (Uint8)b, (Uint8)a};
+                    }
+                }
+                const char* expEndColor = explosionElem->Attribute("endColor");
+                if (expEndColor) {
+                    int r, g, b, a;
+                    if (sscanf(expEndColor, "%d,%d,%d,%d", &r, &g, &b, &a) == 4) {
+                        explosionConfig.endColor = {(Uint8)r, (Uint8)g, (Uint8)b, (Uint8)a};
                     }
                 }
             }
@@ -394,37 +488,59 @@ void Engine::update() {
 
             if ((aIsPlayer && bIsAsteroid) || (bIsPlayer && aIsAsteroid)) {
                 std::cout << "Rocket hit asteroid" << std::endl;
-                
-                // Trigger player's emitter burst for natural explosion
+
+                // Play explosion sound
+                AssetManager::getInstance().playSound("explosion");
+
+                // Freeze and remove the player
                 GameObject* playerObj = aIsPlayer ? objA : objB;
                 if (playerObj) {
-                    auto* emitter = playerObj->getComponent<ParticleEmitterComponent>();
-                    if (emitter) {
-                        // Preserve current trail configuration
-                        EmitterType prevType = EmitterType::Continuous; // default
-                        // Note: we don't have getters; assume trail defaults used at spawn.
-                        // To avoid corrupting trail, only override burst-specific values temporarily.
-
-                        // Configure burst without altering trail-critical settings (direction/offset/spawnRate)
-                        prevType = EmitterType::Continuous;
-                        emitter->setEmitterType(EmitterType::Burst);
-                        emitter->setBurstCount(60);
-                        emitter->setBurstDuration(0.18f);
-                        emitter->setLifetime(0.9f);
-                        emitter->setSize(4.0f);
-                        emitter->setSpeedMin(100.0f);
-                        emitter->setSpeedMax(300.0f);
-                        // Use full spread but keep existing direction/offset as-is
-                        // emitter->setDirectionOffset(0.0f);
-                        // emitter->setPositionOffset(0.0f, 0.0f);
-                        emitter->setSpreadAngle(360.0f);
-
-                        emitter->triggerBurst();
-
-                        // Restore emitter to continuous mode to keep rocket trail working
-                        emitter->setEmitterType(prevType);
+                    // Mark for deletion to remove from game
+                    playerObj->markForDeletion();
+                    player = nullptr;  // Clear player reference
+                    
+                    // Trigger game over
+                    gameOver = true;
+                    gameOverScreen->setScore(score);
+                    
+                    // Update high score if current score is higher
+                    if (score > AssetManager::getInstance().getHighScore()) {
+                        AssetManager::getInstance().setHighScore(score);
+                        gameOverScreen->setHighScore(score);
+                        AssetManager::getInstance().saveHighScoreToXML("assets/config.xml");
                     }
                 }
+
+                // Spawn a dedicated explosion emitter GameObject so the player's trail stays intact
+                GameObject* hitObj = aIsAsteroid ? objA : objB;
+                TransformComponent* hitTransform = hitObj ? hitObj->getComponent<TransformComponent>() : nullptr;
+                float x = hitTransform ? hitTransform->getX() : 0.0f;
+                float y = hitTransform ? hitTransform->getY() : 0.0f;
+
+                auto explosion = std::make_unique<GameObject>();
+                explosion->setTag("explosion");
+                auto* t = explosion->addComponent<TransformComponent>();
+                t->setPosition(x, y);
+
+                auto* emitter = explosion->addComponent<ParticleEmitterComponent>();
+                emitter->setEmitterType(EmitterType::Burst);
+                emitter->setBurstCount(explosionConfig.burstCount);
+                emitter->setBurstDuration(explosionConfig.burstDuration);
+                emitter->setLifetime(explosionConfig.lifetime);
+                emitter->setSize(explosionConfig.size);
+                emitter->setSpeedMin(explosionConfig.speedMin);
+                emitter->setSpeedMax(explosionConfig.speedMax);
+                emitter->setSpreadAngle(explosionConfig.spreadAngle);
+                emitter->setDirectionOffset(explosionConfig.directionOffset);
+                emitter->setPositionOffset(explosionConfig.offsetX, explosionConfig.offsetY);
+                emitter->setStartColor(explosionConfig.startColor);
+                emitter->setEndColor(explosionConfig.endColor);
+                emitter->triggerBurst();
+
+                auto* lifetime = explosion->addComponent<LifetimeComponent>();
+                lifetime->setLifetime(explosionConfig.lifetime + 0.3f);
+
+                gameObjects.push_back(std::move(explosion));
             }
         }
     }
@@ -438,8 +554,22 @@ void Engine::update() {
     ParticleSystem::getInstance().update(fixedDeltaTime);
     ParticleSystem::getInstance().update(fixedDeltaTime);
     
+    // Update score based on player distance from spawn
+    if (player) {
+        auto* playerTransform = player->getComponent<TransformComponent>();
+        if (playerTransform) {
+            float dx = playerTransform->getX() - playerSpawnX;
+            float dy = playerTransform->getY() - playerSpawnY;
+            float distance = std::sqrt(dx * dx + dy * dy);
+            setScore(static_cast<int>(distance)/100);
+        }
+    }
+    
     // Clean up any objects marked for deletion
     cleanupMarkedObjects();
+    
+    // Process any queued asteroid spawns (happens after update to avoid vector reallocation issues)
+    processPendingAsteroids();
 }
 
 void Engine::render() {
@@ -451,13 +581,19 @@ void Engine::render() {
     for (auto& obj : gameObjects) {
         obj->render();
     }
-    
+
     // Render particles (after sprites, before debug overlay)
     ParticleSystem::getInstance().render(renderer, &View::getInstance());
 
     // Physics debug overlay (draw after normal rendering, before present)
     PhysicsDebugDraw::render(renderer, gameObjects);
+
+    // Render score in top left
+    if (scoreDisplay && !gameOver) scoreDisplay->render();
     
+    // Render game over screen if game is over
+    if (gameOver && gameOverScreen) gameOverScreen->render();
+
     SDL_RenderPresent(renderer);
 }
 
@@ -468,13 +604,25 @@ void Engine::quit() {
 void Engine::clean() {
     // Clear particle system
     ParticleSystem::getInstance().clear();
+
+    // Clean up score display
+    if (scoreDisplay) {
+        delete scoreDisplay;
+        scoreDisplay = nullptr;
+    }
     
+    // Clean up game over screen
+    if (gameOverScreen) {
+        delete gameOverScreen;
+        gameOverScreen = nullptr;
+    }
+
     // Destroy physics world
     if (b2World_IsValid(physicsWorldId)) {
         b2DestroyWorld(physicsWorldId);
         physicsWorldId = b2_nullWorldId;
     }
-    
+
     if (renderer) {
         SDL_DestroyRenderer(renderer);
         renderer = nullptr;
@@ -485,6 +633,28 @@ void Engine::clean() {
     }
     SDL_Quit();
     std::cout << "Engine cleaned up" << std::endl;
+}
+
+void Engine::setScore(int newScore) {
+    score = newScore;
+    if (scoreDisplay) scoreDisplay->setScore(score);
+    updateAsteroidDifficulty();
+}
+
+void Engine::updateAsteroidDifficulty() {
+    if (!player) return;
+    
+    // Calculate spawn density based on score
+    // Start at 1.0, increase with score: 1.0 + (score / 1000)
+    // So at score 1000, density is 2.0. At score 2000, density is 3.0, etc.
+    float baseDensity = 1.0f;
+    float difficulty = baseDensity + (score / 1000.0f);
+    
+    // Get the asteroid spawner component from the player
+    auto* spawner = player->getComponent<AsteroidSpawner>();
+    if (spawner) {
+        spawner->setSpawnDensity(difficulty);
+    }
 }
 
 void Engine::setTargetFPS(int fps) {
@@ -514,6 +684,31 @@ void Engine::cleanupMarkedObjects() {
             ++i;
         }
     }
+}
+
+void Engine::processPendingAsteroids() {
+    // Process all queued asteroid spawns
+    for (const auto& pending : pendingAsteroids) {
+        auto gameObj = std::make_unique<GameObject>();
+        gameObj->setTag("asteroid");
+        
+        // Transform
+        auto* transform = gameObj->addComponent<TransformComponent>();
+        transform->setPosition(pending.x, pending.y);
+        
+        // Sprite (set size BEFORE physics to ensure dimensions are available)
+        auto* sprite = gameObj->addComponent<SpriteComponent>();
+        sprite->setTexture("asteroid");
+        sprite->setSizePreserveAspect(pending.size, true);
+        
+        // Physics (static circular obstacle) - sprite size now available
+        auto* physics = gameObj->addComponent<PhysicsBodyComponent>();
+        physics->setBodyType(BodyType::Static);
+        physics->setShapeType(ShapeType::Circle);
+        
+        gameObjects.push_back(std::move(gameObj));
+    }
+    pendingAsteroids.clear();
 }
 
 void Engine::updateAsteroidSpawning() {

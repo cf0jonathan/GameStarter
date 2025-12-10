@@ -4,6 +4,7 @@
 #include "PhysicsBodyComponent.h"
 #include "InputComponent.h"
 #include "Engine.h"
+#include "AssetManager.h"
 #include <SDL2/SDL.h>
 #include <cmath>
 
@@ -33,8 +34,21 @@ void MoveComponent::update(float dt) {
 
     b2BodyId bodyId = physicsBody->getBodyId();
 
+    bool isThrusting = input && input->isLeftMouseDown();
+    
+    // Handle rocket sound
+    if (isThrusting && !wasThrusting) {
+        // Start playing rocket sound loop
+        rocketSoundChannel = AssetManager::getInstance().playSoundLoop("rocket");
+    } else if (!isThrusting && wasThrusting) {
+        // Stop rocket sound
+        AssetManager::getInstance().stopSound(rocketSoundChannel);
+        rocketSoundChannel = -1;
+    }
+    wasThrusting = isThrusting;
+
     // If not holding button, let damping handle slowdown
-    if (!input || !input->isLeftMouseDown()) {
+    if (!isThrusting) {
         return;
     }
 

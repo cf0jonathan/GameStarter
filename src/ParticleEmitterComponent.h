@@ -38,7 +38,7 @@ public:
     // Emission control
     void setRequireMouseButton(bool require) { requireMouseButton = require; }
     void setBurstDuration(float dur) { burstDuration = dur; }
-    
+       
 private:
     TransformComponent* transform = nullptr;
     class InputComponent* input = nullptr;

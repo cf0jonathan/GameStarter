@@ -4,6 +4,7 @@
 #include "SpriteComponent.h"
 #include "Engine.h"
 #include <cmath>
+#include <iostream>
 
 PhysicsBodyComponent::~PhysicsBodyComponent() {
     if (b2Body_IsValid(bodyId)) {
@@ -39,6 +40,7 @@ void PhysicsBodyComponent::update(float deltaTime) {
 
         bodyId = b2CreateBody(worldId, &bodyDef);
         if (!b2Body_IsValid(bodyId)) return;
+        
         b2Body_SetUserData(bodyId, owner);
         b2Body_EnableContactEvents(bodyId, true);
 

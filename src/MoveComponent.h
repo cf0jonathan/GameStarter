@@ -35,4 +35,8 @@ private:
     TransformComponent* transform = nullptr;
     PhysicsBodyComponent* physicsBody = nullptr;
     class InputComponent* input = nullptr;
+    
+    // Rocket sound management
+    int rocketSoundChannel = -1;
+    bool wasThrusting = false;
 };

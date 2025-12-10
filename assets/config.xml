@@ -1,83 +1,32 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <assets>
     <settings>
-        <display width="1440" height="720" />
-        <timing renderFPS="120" logicFPS="360" />
+        <display width="1440" height="720"/>
+        <timing renderFPS="120" logicFPS="360"/>
     </settings>
     <textures>
-        <texture id="rocket" path="assets/rocket.png" />
-        <texture id="asteroid" path="assets/asteroid.png" />
-        <texture id="stars" path="assets/stars.png" />
+        <texture id="rocket" path="assets/rocket.png"/>
+        <texture id="asteroid" path="assets/asteroid.png"/>
+        <texture id="stars" path="assets/stars.png"/>
     </textures>
-    
+    <sounds>
+        <sound id="explosion" path="assets/explosion.mp3"/>
+        <sound id="rocket" path="assets/rocket.mp3"/>
+    </sounds>
     <gameObjects>
         <!-- Background (rendered first) -->
         <object type="background">
-            <background texture="stars" tileWidth="800" tileHeight="600" scrollX="0.3" scrollY="0.3" />
+            <background texture="stars" tileWidth="800" tileHeight="600" scrollX="0.3" scrollY="0.3"/>
         </object>
-        
         <object type="player">
-            <position x="0" y="0" />
-            <sprite texture="rocket" width="120" />
-            <physics type="dynamic" shape="ellipse" linearDamping="0.8" angularDamping="0.0" fixedRotation="false" density="1.0" />
-            <rotateToMouse rotationMaxSpeed="360" rotationAccel="720" rotationDecel="1080" rotationSlowRadius="60" rotationDeadZone="1" rotationEaseExponent="0.6" />
-            <move thrustForce="2500.0" maxSpeed="4500.0" />
-            <particleEmitter type="continuous" spawnRate="500" lifetime="1" speedMin="50" speedMax="150" 
-                           size="3" spreadAngle="180" directionOffset="180" offsetX="-60" offsetY="0"
-                           requireMouseButton="true" burstCount="60" burstDuration="0.18"
-                           startColor="255,128,0,255" endColor="255,0,0,0" />
+            <position x="0" y="0"/>
+            <sprite texture="rocket" width="120"/>
+            <physics type="dynamic" shape="ellipse" linearDamping="0.8" angularDamping="0.0" fixedRotation="false" density="1.0"/>
+            <rotateToMouse rotationMaxSpeed="360" rotationAccel="720" rotationDecel="1080" rotationSlowRadius="60" rotationDeadZone="1" rotationEaseExponent="0.6"/>
+            <move thrustForce="2500.0" maxSpeed="4500.0"/>
+            <particleEmitter type="continuous" spawnRate="500" lifetime="1" speedMin="50" speedMax="150" size="3" spreadAngle="180" directionOffset="180" offsetX="-60" offsetY="0" requireMouseButton="true" burstCount="60" burstDuration="0.18" startColor="255,128,0,255" endColor="255,0,0,0"/>
+            <explosionEmitter burstCount="1200" burstDuration="0.5" lifetime="2.0" size="2.0" speedMin="100" speedMax="300" spreadAngle="360" directionOffset="0" offsetX="0" offsetY="0" startColor="255,200,100,255" endColor="100,50,0,0"/>
         </object>
-        
-        <!-- Asteroid field -->
-        <object type="asteroid"><position x="-650" y="-420" /><sprite texture="asteroid" width="85" /><physics type="static" shape="circle" /></object>
-        <object type="asteroid"><position x="720" y="-380" /><sprite texture="asteroid" width="110" /><physics type="static" shape="circle" /></object>
-        <object type="asteroid"><position x="-890" y="150" /><sprite texture="asteroid" width="95" /><physics type="static" shape="circle" /></object>
-        <object type="asteroid"><position x="420" y="340" /><sprite texture="asteroid" width="70" /><physics type="static" shape="circle" /></object>
-        <object type="asteroid"><position x="-200" y="-550" /><sprite texture="asteroid" width="120" /><physics type="static" shape="circle" /></object>
-        <object type="asteroid"><position x="580" y="-120" /><sprite texture="asteroid" width="65" /><physics type="static" shape="circle" /></object>
-        <object type="asteroid"><position x="-480" y="280" /><sprite texture="asteroid" width="90" /><physics type="static" shape="circle" /></object>
-        <object type="asteroid"><position x="850" y="200" /><sprite texture="asteroid" width="100" /><physics type="static" shape="circle" /></object>
-        <object type="asteroid"><position x="-750" y="-180" /><sprite texture="asteroid" width="75" /><physics type="static" shape="circle" /></object>
-        <object type="asteroid"><position x="320" y="-450" /><sprite texture="asteroid" width="88" /><physics type="static" shape="circle" /></object>
-        <object type="asteroid"><position x="-120" y="450" /><sprite texture="asteroid" width="105" /><physics type="static" shape="circle" /></object>
-        <object type="asteroid"><position x="680" y="80" /><sprite texture="asteroid" width="78" /><physics type="static" shape="circle" /></object>
-        <object type="asteroid"><position x="-950" y="-300" /><sprite texture="asteroid" width="92" /><physics type="static" shape="circle" /></object>
-        <object type="asteroid"><position x="150" y="520" /><sprite texture="asteroid" width="68" /><physics type="static" shape="circle" /></object>
-        <object type="asteroid"><position x="-380" y="-100" /><sprite texture="asteroid" width="115" /><physics type="static" shape="circle" /></object>
-        <object type="asteroid"><position x="920" y="-250" /><sprite texture="asteroid" width="82" /><physics type="static" shape="circle" /></object>
-        <object type="asteroid"><position x="-580" y="380" /><sprite texture="asteroid" width="97" /><physics type="static" shape="circle" /></object>
-        <object type="asteroid"><position x="480" y="-320" /><sprite texture="asteroid" width="73" /><physics type="static" shape="circle" /></object>
-        <object type="asteroid"><position x="-270" y="180" /><sprite texture="asteroid" width="108" /><physics type="static" shape="circle" /></object>
-        <object type="asteroid"><position x="780" y="420" /><sprite texture="asteroid" width="86" /><physics type="static" shape="circle" /></object>
-        <object type="asteroid"><position x="-820" y="-480" /><sprite texture="asteroid" width="94" /><physics type="static" shape="circle" /></object>
-        <object type="asteroid"><position x="220" y="240" /><sprite texture="asteroid" width="76" /><physics type="static" shape="circle" /></object>
-        <object type="asteroid"><position x="-450" y="-360" /><sprite texture="asteroid" width="101" /><physics type="static" shape="circle" /></object>
-        <object type="asteroid"><position x="620" y="160" /><sprite texture="asteroid" width="89" /><physics type="static" shape="circle" /></object>
-        <object type="asteroid"><position x="-180" y="-240" /><sprite texture="asteroid" width="71" /><physics type="static" shape="circle" /></object>
-        <object type="asteroid"><position x="880" y="-140" /><sprite texture="asteroid" width="112" /><physics type="static" shape="circle" /></object>
-        <object type="asteroid"><position x="-720" y="490" /><sprite texture="asteroid" width="84" /><physics type="static" shape="circle" /></object>
-        <object type="asteroid"><position x="380" y="-520" /><sprite texture="asteroid" width="98" /><physics type="static" shape="circle" /></object>
-        <object type="asteroid"><position x="-90" y="60" /><sprite texture="asteroid" width="67" /><physics type="static" shape="circle" /></object>
-        <object type="asteroid"><position x="750" y="310" /><sprite texture="asteroid" width="103" /><physics type="static" shape="circle" /></object>
-        <object type="asteroid"><position x="-540" y="-150" /><sprite texture="asteroid" width="91" /><physics type="static" shape="circle" /></object>
-        <object type="asteroid"><position x="520" y="440" /><sprite texture="asteroid" width="79" /><physics type="static" shape="circle" /></object>
-        <object type="asteroid"><position x="-850" y="220" /><sprite texture="asteroid" width="106" /><physics type="static" shape="circle" /></object>
-        <object type="asteroid"><position x="280" y="-380" /><sprite texture="asteroid" width="74" /><physics type="static" shape="circle" /></object>
-        <object type="asteroid"><position x="-320" y="350" /><sprite texture="asteroid" width="96" /><physics type="static" shape="circle" /></object>
-        <object type="asteroid"><position x="950" y="-80" /><sprite texture="asteroid" width="87" /><physics type="static" shape="circle" /></object>
-        <object type="asteroid"><position x="-680" y="-280" /><sprite texture="asteroid" width="109" /><physics type="static" shape="circle" /></object>
-        <object type="asteroid"><position x="180" y="140" /><sprite texture="asteroid" width="72" /><physics type="static" shape="circle" /></object>
-        <object type="asteroid"><position x="-410" y="-440" /><sprite texture="asteroid" width="99" /><physics type="static" shape="circle" /></object>
-        <object type="asteroid"><position x="820" y="380" /><sprite texture="asteroid" width="83" /><physics type="static" shape="circle" /></object>
-        <object type="asteroid"><position x="-240" y="120" /><sprite texture="asteroid" width="114" /><physics type="static" shape="circle" /></object>
-        <object type="asteroid"><position x="650" y="-220" /><sprite texture="asteroid" width="77" /><physics type="static" shape="circle" /></object>
-        <object type="asteroid"><position x="-780" y="460" /><sprite texture="asteroid" width="104" /><physics type="static" shape="circle" /></object>
-        <object type="asteroid"><position x="420" y="-160" /><sprite texture="asteroid" width="69" /><physics type="static" shape="circle" /></object>
-        <object type="asteroid"><position x="-510" y="260" /><sprite texture="asteroid" width="93" /><physics type="static" shape="circle" /></object>
-        <object type="asteroid"><position x="890" y="50" /><sprite texture="asteroid" width="81" /><physics type="static" shape="circle" /></object>
-        <object type="asteroid"><position x="-140" y="-340" /><sprite texture="asteroid" width="107" /><physics type="static" shape="circle" /></object>
-        <object type="asteroid"><position x="560" y="500" /><sprite texture="asteroid" width="75" /><physics type="static" shape="circle" /></object>
-        <object type="asteroid"><position x="-920" y="-50" /><sprite texture="asteroid" width="100" /><physics type="static" shape="circle" /></object>
-        <object type="asteroid"><position x="340" y="280" /><sprite texture="asteroid" width="90" /><physics type="static" shape="circle" /></object>
     </gameObjects>
+    <game highScore="0"/>
 </assets>
