@@ -17,6 +17,8 @@ public:
     void playSound(const std::string& id);
     int playSoundLoop(const std::string& id);  // Returns channel ID
     void stopSound(int channel);
+    void stopAllSounds();                      // Stop all currently playing sounds
+    void setVolume(const std::string& id, int volume); // Set volume (0-128) for a specific sound
     
     // High score persistence
     int getHighScore() const { return highScore; }

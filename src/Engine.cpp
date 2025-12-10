@@ -68,13 +68,7 @@ bool Engine::init(const std::string& title, int width, int height) {
         return false;
     }
     
-    // Initialize SDL_mixer with MP3 support
-    int flags = MIX_INIT_MP3;
-    if ((Mix_Init(flags) & flags) != flags) {
-        std::cerr << "SDL_mixer could not initialize MP3 support! SDL_mixer Error: " << Mix_GetError() << std::endl;
-        // Continue anyway, maybe WAV will work
-    }
-    
+    // Initialize SDL_mixer (WAV is always supported)
     if (Mix_OpenAudio(44100, MIX_DEFAULT_FORMAT, 2, 2048) < 0) {
         std::cerr << "SDL_mixer could not initialize! SDL_mixer Error: " << Mix_GetError() << std::endl;
         return false;
@@ -140,7 +134,8 @@ GameObject* Engine::spawnPlayer(float x, float y, const std::string& texture, fl
     physics->setDensity(1.0f);
     
     // Input & Control
-    gameObj->addComponent<InputComponent>();
+    auto* input = gameObj->addComponent<InputComponent>();
+    gameOverInput = input;  // Store reference for restart input
     
     // Rotation behavior (hardcoded defaults - can be parameterized later if needed)
     auto* rotateToMouse = gameObj->addComponent<RotateToMouseComponent>();
@@ -462,6 +457,12 @@ void Engine::handleEvents() {
 }
 
 void Engine::update() {
+    // Handle restart on spacebar press when game is over
+    if (gameOver && gameOverInput && gameOverInput->isSpacePressed()) {
+        restartGame();
+        return;  // Skip normal update after restart
+    }
+    
     // Refresh mouse position each fixed update to avoid relying solely on motion events
     {
         int mx = 0, my = 0;
@@ -488,6 +489,9 @@ void Engine::update() {
 
             if ((aIsPlayer && bIsAsteroid) || (bIsPlayer && aIsAsteroid)) {
                 std::cout << "Rocket hit asteroid" << std::endl;
+
+                // Stop all looping sounds (especially rocket thrust)
+                AssetManager::getInstance().stopAllSounds();
 
                 // Play explosion sound
                 AssetManager::getInstance().playSound("explosion");
@@ -639,6 +643,38 @@ void Engine::setScore(int newScore) {
     score = newScore;
     if (scoreDisplay) scoreDisplay->setScore(score);
     updateAsteroidDifficulty();
+}
+
+void Engine::restartGame() {
+    // Clear game over state
+    gameOver = false;
+    score = 0;
+    gameOverInput = nullptr;
+    
+    // Remove all game objects
+    gameObjects.clear();
+    pendingAsteroids.clear();
+    
+    // Clear physics world
+    if (b2World_IsValid(physicsWorldId)) {
+        b2DestroyWorld(physicsWorldId);
+    }
+    
+    // Recreate physics world
+    b2WorldDef worldDef = b2DefaultWorldDef();
+    worldDef.gravity = {0.0f, 0.0f};
+    physicsWorldId = b2CreateWorld(&worldDef);
+    
+    // Reload game objects from XML
+    loadGameObjectsFromXML("assets/config.xml");
+    
+    // Reset score display
+    if (scoreDisplay) {
+        scoreDisplay->setScore(0);
+    }
+    if (gameOverScreen) {
+        gameOverScreen->setScore(0);
+    }
 }
 
 void Engine::updateAsteroidDifficulty() {

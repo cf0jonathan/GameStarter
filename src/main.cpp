@@ -21,6 +21,10 @@ int main() {
     // Load assets first (textures need to be loaded before game objects)
     AssetManager::getInstance().loadFromXML("assets/config.xml");
     
+    // Set sound volumes from settings
+    AssetManager::getInstance().setVolume("explosion", settings.explosionVolume);
+    AssetManager::getInstance().setVolume("rocket", settings.rocketVolume);
+    
     // Load game objects (now textures are available for aspect ratio queries)
     engine.loadGameObjectsFromXML("assets/config.xml");
     

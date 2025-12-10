@@ -63,6 +63,7 @@ public:
     void setScore(int score);
     int getScore() const { return score; }
     bool isGameOver() const { return gameOver; }
+    void restartGame();  // Restart the game after game over
 
 private:
     int score = 0;
@@ -72,6 +73,7 @@ private:
     GameObject* player = nullptr;           // Reference to player for distance calculation
     float playerSpawnX = 0.0f, playerSpawnY = 0.0f;
     bool gameOver = false;
+    class InputComponent* gameOverInput = nullptr;  // Input component for checking spacebar after game over
     struct ExplosionConfig {
         int burstCount = 60;
         float burstDuration = 0.18f;

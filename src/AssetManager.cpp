@@ -114,8 +114,19 @@ int AssetManager::playSoundLoop(const std::string& id) {
 }
 
 void AssetManager::stopSound(int channel) {
-    if (channel >= 0) {
+    if (channel != -1) {
         Mix_HaltChannel(channel);
+    }
+}
+
+void AssetManager::stopAllSounds() {
+    Mix_HaltChannel(-1);  // -1 stops all channels
+}
+
+void AssetManager::setVolume(const std::string& id, int volume) {
+    auto it = sounds.find(id);
+    if (it != sounds.end() && it->second) {
+        Mix_VolumeChunk(it->second, volume);  // Volume range: 0 (silent) to 128 (max)
     }
 }
 
@@ -135,6 +146,7 @@ void AssetManager::clean() {
     sounds.clear();
     
     Mix_CloseAudio();
+    Mix_Quit();
 }
 
 void AssetManager::setHighScore(int score) {

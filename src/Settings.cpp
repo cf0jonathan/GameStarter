@@ -26,6 +26,10 @@ bool loadSettingsFromXML(const std::string& path, Settings& out) {
         timing->QueryIntAttribute("renderFPS", &out.renderFPS);
         timing->QueryIntAttribute("logicFPS", &out.logicFPS);
     }
+    if (auto* audio = settingsElem->FirstChildElement("audio")) {
+        audio->QueryIntAttribute("explosionVolume", &out.explosionVolume);
+        audio->QueryIntAttribute("rocketVolume", &out.rocketVolume);
+    }
     // Basic sanity clamps
     if (out.width < 320){ 
         out.width = 320;

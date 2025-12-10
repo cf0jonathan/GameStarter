@@ -3,6 +3,7 @@
     <settings>
         <display width="1440" height="720"/>
         <timing renderFPS="120" logicFPS="360"/>
+        <audio explosionVolume="80" rocketVolume="40"/>
     </settings>
     <textures>
         <texture id="rocket" path="assets/rocket.png"/>
@@ -10,8 +11,8 @@
         <texture id="stars" path="assets/stars.png"/>
     </textures>
     <sounds>
-        <sound id="explosion" path="assets/explosion.mp3"/>
-        <sound id="rocket" path="assets/rocket.mp3"/>
+        <sound id="explosion" path="assets/explosion.wav"/>
+        <sound id="rocket" path="assets/rocket.wav"/>
     </sounds>
     <gameObjects>
         <!-- Background (rendered first) -->

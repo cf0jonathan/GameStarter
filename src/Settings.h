@@ -6,6 +6,8 @@ struct Settings {
     int height = 720;
     int renderFPS = 60;
     int logicFPS = 60;
+    int explosionVolume = 80;   // 0-128 (62% of max)
+    int rocketVolume = 40;      // 0-128 (31% of max)
     // Future fields:
     // int physicsSubsteps = 1;
     // float timeScale = 1.0f;

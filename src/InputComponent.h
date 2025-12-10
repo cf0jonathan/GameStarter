@@ -17,6 +17,7 @@ public:
     bool isAPressed() const { return isKeyDown(SDL_SCANCODE_A); }
     bool isSPressed() const { return isKeyDown(SDL_SCANCODE_S); }
     bool isDPressed() const { return isKeyDown(SDL_SCANCODE_D); }
+    bool isSpacePressed() const { return isKeyPressed(SDL_SCANCODE_SPACE); }
     
     // Mouse button state
     bool isMouseButtonPressed(int button) const;  // Just pressed this frame
